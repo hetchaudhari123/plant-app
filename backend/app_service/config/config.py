@@ -1,0 +1,26 @@
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    MONGO_URI: str
+    MONGO_DB_NAME: str = "plant_app"
+
+    ACCESS_SECRET_KEY: str
+    REFRESH_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 3
+
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
+    OTP_EXPIRE_MINUTES: int = 10
+
+    MAIL_USER: str
+    MAIL_PASS: str
+    RESET_PASSWORD_TOKEN_EXPIRY_MINUTES: int
+
+    FRONTEND_URL: str
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
