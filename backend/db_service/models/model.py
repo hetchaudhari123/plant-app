@@ -14,8 +14,6 @@ class Model(BaseModel):
     name: str  # e.g., "ResNet", "EfficientNet"
     version: str  # e.g., "v1.0"
     description: Optional[str] = None
-    container_name: str  # Docker container name
-    endpoint: str  # URL/path to call this model service
     status: ModelStatus = ModelStatus.active
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

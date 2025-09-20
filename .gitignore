@@ -1,0 +1,12 @@
+# Ignore saved models
+backend/model_service/saved_models/*.pth
+backend/model_service/saved_models/*.pkl
+backend/model_service/.env
+backend/db_service/.env
+backend/app_service/.env
+backend/app_service/.venv
+backend/model_service/.venv
+backend/db_service/.venv
+backend/db_service/__pycache__
+backend/model_service/.venv
+backend/app_service/.venv
