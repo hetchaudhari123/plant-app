@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     MAIL_PASS: str
     RESET_PASSWORD_TOKEN_EXPIRY_MINUTES: int
 
+    BACKEND_DB_URL: str
+
     FRONTEND_URL: str
     class Config:
         env_file = ".env"

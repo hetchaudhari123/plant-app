@@ -42,3 +42,11 @@ Make predictions
 Can also save/load results via db_service API
 
 Doesn’t connect to DB directly either.
+
+
+How to run:
+uv run python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+
+
+To Check delete account at the end

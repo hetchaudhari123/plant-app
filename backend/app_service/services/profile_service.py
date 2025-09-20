@@ -1,18 +1,18 @@
 from fastapi import HTTPException, Response, UploadFile, File
-from db.connections import users_collection, predictions_collection, jobs_collection, otps_collection 
-import cloudinary.uploader
 from utils.security_utils import verify_password
 from utils.otp_utils import generate_secure_otp
 from datetime import datetime, timedelta, timezone
-import uuid
-from db.connections import users_collection, otps_collection
 from utils.email_utils import send_email
 from config.config import settings
-from models.otp import OTPPurpose
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from crud_apis.predictions_api import delete_predictions_by_user
+import cloudinary
+import cloudinary.uploader
 
+from crud_apis.users_api import get_user_by_email, create_user, get_user_by_id, update_user_password, update_reset_token, get_user_by_reset_token, update_user_profile, delete_user, update_user_profile_pic
+from crud_apis.jobs_api import delete_jobs_by_user
 
-
+from crud_apis.otp_api import delete_otps_for_email, delete_otps_by_user, create_otp, get_otp_for_email_change, delete_otps_by_user, delete_otps_for_email
 
 
 async def update_profile_name(user_id: str, first_name: str = None, last_name: str = None):
@@ -21,7 +21,7 @@ async def update_profile_name(user_id: str, first_name: str = None, last_name: s
     Only update profile_pic_url if it is still the default DiceBear avatar.
     """
     # 1) Fetch user
-    user = await users_collection.find_one({"id": user_id})
+    user = await get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -50,13 +50,7 @@ async def update_profile_name(user_id: str, first_name: str = None, last_name: s
         raise HTTPException(status_code=400, detail="No fields provided for update")
 
     # 4) Perform update
-    await users_collection.update_one(
-        {"id": user_id},
-        {"$set": update_fields}
-    )
-
-    # 5) Return updated user (without password_hash)
-    updated_user = await users_collection.find_one({"id": user_id}, {"password_hash": 0})
+    updated_user = await update_user_profile(user_id, update_fields)
 
 
 async def delete_account(user_id: str, response: Response):
@@ -65,17 +59,17 @@ async def delete_account(user_id: str, response: Response):
     """
 
     # 1) Check if user exists
-    user = await users_collection.find_one({"id": user_id})
+    user = await get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # 2) Delete the user
-    await users_collection.delete_one({"id": user_id})
+    await delete_user(user_id)
 
     # 3) Delete related data (cascade cleanup)
-    await predictions_collection.delete_many({"user_id": user_id})
-    await jobs_collection.delete_many({"user_id": user_id})
-    await otps_collection.delete_many({"email": user["email"]})
+    await delete_predictions_by_user(user_id)
+    await delete_jobs_by_user(user_id)
+    await delete_otps_for_email(user["email"])
 
 
     # 4) Clear authentication cookies
@@ -86,15 +80,15 @@ async def delete_account(user_id: str, response: Response):
 
 
 
-
 async def update_profile_picture(user_id: str, file: UploadFile = File(...)):
     # 1) Check if user exists
-    user = await users_collection.find_one({"id": user_id})
+    user = await get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # 2) Upload the file to Cloudinary
+    # 2) Upload to Cloudinary
     try:
+        file.file.seek(0)  
         upload_result = cloudinary.uploader.upload(
             file.file,
             folder="plant_app/profile_pics",
@@ -105,14 +99,17 @@ async def update_profile_picture(user_id: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {str(e)}")
 
-    # 3) Update MongoDB with the new profile picture
-    update_result = await users_collection.update_one(
-        {"id": user_id},
-        {"$set": {"profile_pic": new_pic_url}}
-    )
-
-    if update_result.modified_count == 0:
+    # 3) Update backend
+    update_result = await update_user_profile_pic(user_id, new_pic_url)
+    if not update_result or "id" not in update_result:
         raise HTTPException(status_code=400, detail="Profile picture update failed")
+
+    # 4) Return a proper dict
+    return {
+        "message": "Profile picture updated successfully",
+        "user_id": user_id,
+        "new_pic_url": new_pic_url
+    }
 
 
 
@@ -124,12 +121,9 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
 
 
     # 0) Delete any existing OTPs for this user and purpose
-    await otps_collection.delete_many({
-        "user_id": user_id
-    })
-
+    await delete_otps_by_user(user_id)
     # 1) Find the user
-    user = await users_collection.find_one({"id": user_id})
+    user = await get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -140,18 +134,14 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
     # 3) Generate secure 6-digit OTP
     otp_code = generate_secure_otp(length=6)
 
-    # 4) Create OTP entry
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
-
     otp_entry = {
         "user_id": user_id,
         "email": new_email,
         "otp": otp_code,
-        "purpose":OTPPurpose.email_change,
-        "expires_at": expires_at,
+        "purpose":"email_change",
     }
 
-    await otps_collection.insert_one(otp_entry)
+    await create_otp(otp_entry)
 
     # 1) Set up Jinja2 environment (pointing to your templates folder)
     env = Environment(
@@ -186,24 +176,20 @@ async def confirm_email_change(user_id: str, new_email: str, otp_code: str):
     """
 
     # 1) Find OTP entry
-    otp_entry = await otps_collection.find_one({
-        "user_id": user_id,
-        "email": new_email,
-        "otp": otp_code,
-        "purpose": OTPPurpose.email_change.value
-    })
+    otp_entry = await get_otp_for_email_change(user_id, new_email, otp_code)
 
     if not otp_entry:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
     # 2) Mark OTP as verified
-    await otps_collection.delete_one({"_id": otp_entry["_id"]})
+    await delete_otps_for_email(new_email)
+    
 
     # 3) Update user's email in users_collection
-    result = await users_collection.update_one(
-        {"id": user_id},
-        {"$set": {"email": new_email}}
-    )
+    update_fields = {"email": new_email}
+    result = await update_user_profile(user_id, update_fields)
 
-    if result.modified_count == 0:
-        raise HTTPException(status_code=400, detail="Failed to update email")
+
+    # if result.modified_count == 0:
+    if not result or "id" not in result:
+        raise HTTPException(status_code=400, detail="Profile picture update failed")

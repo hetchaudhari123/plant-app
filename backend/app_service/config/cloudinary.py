@@ -1,7 +1,6 @@
 import cloudinary
 
-from config import settings  
-
+from config.config import settings 
 # Configure Cloudinary globally
 cloudinary.config(
     cloud_name=settings.CLOUDINARY_CLOUD_NAME,

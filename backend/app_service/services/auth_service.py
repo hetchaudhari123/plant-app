@@ -1,6 +1,4 @@
 from uuid import uuid4
-from models.user import User
-from db.connections import users_collection, otps_collection
 from utils.security_utils import hash_password, verify_password
 
 from fastapi import HTTPException, Response, status
@@ -14,10 +12,10 @@ from utils.email_utils import send_email
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
-
+from crud_apis.users_api import get_user_by_email, create_user, get_user_by_id, update_user_password, update_reset_token, get_user_by_reset_token
 import secrets
 from fastapi.templating import Jinja2Templates
-
+from crud_apis.otp_api import delete_otps_for_email, get_otp_by_code, create_otp, get_otp_by_email_and_code
 
 
 async def send_otp(email: EmailStr):
@@ -27,14 +25,21 @@ async def send_otp(email: EmailStr):
     """
 
     # 1) Remove any existing OTPs for this email
-    await otps_collection.delete_many({"email": email})
+    await delete_otps_for_email(email)
 
     # 2) Generate a secure 6-digit OTP
     otp_code = generate_secure_otp(length=6)
 
     # Ensure uniqueness across currently stored OTPs
-    while await otps_collection.find_one({"otp": otp_code}):
+    MAX_ATTEMPTS = 10
+    for _ in range(MAX_ATTEMPTS):
         otp_code = generate_secure_otp(length=6)
+        otp_doc = await get_otp_by_code(otp_code)
+        if otp_doc is None:
+            break
+    else:
+        raise Exception("Failed to generate a unique OTP after 10 attempts")
+
 
     # 3) Prepare OTP document
     otp_doc = {
@@ -43,7 +48,7 @@ async def send_otp(email: EmailStr):
     }
 
     # 4) Insert into MongoDB
-    await otps_collection.insert_one(otp_doc)
+    await create_otp(otp_doc)
 
     # 5) Load Jinja2 template
     env = Environment(
@@ -80,12 +85,13 @@ async def signup_user(email: EmailStr, first_name: str, last_name: str, password
             detail="Password and confirm password do not match"
         )
     
-    existing = await users_collection.find_one({"email": email})
+
+    existing = await get_user_by_email(email)
     if existing:
         raise ValueError("User with this email already exists")
 
     # Fetch OTP from DB for this email
-    otp_entry = await otps_collection.find_one({"email": email, "otp": otp_input})
+    otp_entry = await get_otp_by_email_and_code(email, otp_input)
     if not otp_entry:
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
@@ -100,27 +106,28 @@ async def signup_user(email: EmailStr, first_name: str, last_name: str, password
     # Generate profile picture URL (DiceBear initials avatar)
     profile_pic_url = f"https://api.dicebear.com/5.x/initials/svg?seed={first_name}%20{last_name}"
 
-    # Prepare user document
-    user_doc = User(
-        id=str(uuid4()),
-        email=email,
-        first_name=first_name,
-        last_name=last_name,
-        password_hash=password_hash,
-        created_at=datetime.now(timezone.utc),
-        profile_pic_url=profile_pic_url,
-        last_login=None
-    ).dict(by_alias=True)
 
-    # Insert into MongoDB
-    await users_collection.insert_one(user_doc)
+
+    user_doc = {
+        "id": str(uuid4()),
+        "email": email,
+        "first_name": first_name,
+        "last_name": last_name,
+        "password_hash": password_hash,
+        "created_at": datetime.now(timezone.utc).isoformat(),  # serialize datetime
+        "profile_pic_url": profile_pic_url,
+        "last_login": None
+    }
+
+
+
+    await create_user(user_doc)
 
     # Remove password before returning
     user_doc.pop("password_hash")
 
     # 10) Delete OTP after successful signup
-    await otps_collection.delete_one({"_id": otp_entry["_id"]})
-
+    await delete_otps_for_email(email)
 
         
     env = Environment(
@@ -152,7 +159,7 @@ async def signup_user(email: EmailStr, first_name: str, last_name: str, password
 
 async def login_user(email: EmailStr, password: str, response: Response):
     # 1) Find user
-    user = await users_collection.find_one({"email": email})
+    user = await get_user_by_email(email)
     if not user:
         raise HTTPException(status_code=401, detail="User with the given email not found")
 
@@ -212,7 +219,7 @@ async def login_user(email: EmailStr, password: str, response: Response):
 
 async def change_password(user_id: str, old_password: str, new_password: str, confirm_password: str, response: Response):
     # 1) Find user by id
-    user = await users_collection.find_one({"id": user_id})
+    user = await get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -228,14 +235,7 @@ async def change_password(user_id: str, old_password: str, new_password: str, co
     new_password_hash = hash_password(new_password)
 
     # 5) Atomically update password and increment token_version, return updated document
-    updated_user = await users_collection.find_one_and_update(
-        {"id": user_id},
-        {
-            "$set": {"password_hash": new_password_hash},
-            "$inc": {"token_version": 1}
-        },
-        return_document=True  # returns the updated document
-    )
+    updated_user = await update_user_password(user_id, new_password_hash)
 
     new_token_version = updated_user["token_version"]
 
@@ -283,7 +283,7 @@ async def reset_password_token(email: EmailStr):
     templates = Jinja2Templates(directory="templates")
 
     # 1) Find user by email
-    user = await users_collection.find_one({"email": email})
+    user = await get_user_by_email(email)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -299,15 +299,8 @@ async def reset_password_token(email: EmailStr):
     )
 
     # 4) Remove any old token and set the new one
-    await users_collection.update_one(
-        {"id": user["id"]},
-        {
-            "$set": {
-                "reset_token": token,
-                "reset_token_expires_at": expires_at
-            }
-        }
-    )
+
+    await update_reset_token(user["id"], token, expires_at)
 
     # 5) Construct reset URL
     reset_url = f"{settings.FRONTEND_URL}/update-password/{token}"
@@ -337,7 +330,7 @@ async def reset_password(token: str, password: str, confirm_password: str):
         )
 
     # 2) Find user by reset token
-    user = await users_collection.find_one({"reset_token": token})
+    user = await get_user_by_reset_token(token)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -348,23 +341,22 @@ async def reset_password(token: str, password: str, confirm_password: str):
     
 
     expires_at = user.get("reset_token_expires_at")
-    if expires_at is not None and expires_at.tzinfo is None:
-        # make it UTC-aware
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if expires_at is not None:
+        if isinstance(expires_at, str):
+            # Parse ISO string back to datetime
+            expires_at = datetime.fromisoformat(expires_at)
+
+        if expires_at.tzinfo is None:
+            # Make it UTC-aware
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
 
     if not expires_at or expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset token expired")
-
 
     # 4) Hash the new password
     hashed_password = hash_password(password)
 
     # 5) Update password & remove reset token
-    await users_collection.update_one(
-        {"id": user["id"]},
-        {
-            "$set": {"password_hash": hashed_password},
-            "$unset": {"reset_token": "", "reset_token_expires_at": ""}
-        }
-    )
+    await update_user_password(user["id"], hashed_password)
 

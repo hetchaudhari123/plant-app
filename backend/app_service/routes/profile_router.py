@@ -53,9 +53,8 @@ async def route_delete_account(payload: DeleteAccountSchema, response: Response)
 
 @router.put("/update-profile-picture", summary="Update profile picture")
 async def route_update_profile_picture(user_id: str, file: UploadFile = File(...)):
-    await update_profile_picture(user_id=user_id, file=file)
-    return {"message": "Profile picture updated successfully"}
-
+    resp = await update_profile_picture(user_id=user_id, file=file)
+    return resp   # already a dict, FastAPI will convert to JSON
 
 @router.post("/request-email-change", summary="Request to change email")
 async def route_request_email_change(payload: EmailChangeRequestSchema):

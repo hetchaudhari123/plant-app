@@ -1,21 +1,9 @@
 from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from db.connections import users_collection, otps_collection
 from routes import auth_router, profile_router
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # ----- Startup logic -----
-    await otps_collection.create_index("expires_at", expireAfterSeconds=0)
-    print("✅ TTL indexes ensured for OTP and reset token collections")
-
-    yield  # application runs here
-
-    # ----- Shutdown logic (optional) -----
-    # e.g., close DB connections if needed
+import config.cloudinary
 
 # Create FastAPI app with lifespan
-app = FastAPI(title="Plant App 🌱", lifespan=lifespan)
+app = FastAPI(title="Plant App 🌱")
 
 # ----------------------------
 # Include routers
