@@ -27,7 +27,7 @@ app.add_middleware(
 # ------------------------
 # Include the routes
 # ------------------------
-app.include_router(model_router, prefix="/model", tags=["Model"])
+app.include_router(model_router, prefix="/models", tags=["Model"])
 
 # ------------------------
 # Root health endpoint using dependency injection

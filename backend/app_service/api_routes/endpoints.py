@@ -14,7 +14,7 @@ DELETE_OTPS_BY_USER = "/otps/user/{user_id}"                # DELETE
 GET_OTP_FOR_EMAIL_CHANGE = "/otps/email-change"             # GET with params {"user_id", "email", "otp", "purpose"}
 
 
-DELETE_PREDICTIONS_BY_USER = "/predictions/user/{user_id}"
+
 
 
 # ----------------------------
@@ -30,5 +30,9 @@ UPDATE_USER_PROFILE = "/users/{user_id}/profile"       # PUT
 DELETE_USER = "/users/{user_id}"                        # DELETE
 UPDATE_USER_PROFILE_PIC = "/users/{user_id}/profile-pic" # PUT
 
-#Predictions
-MODEL_SERVICE_URL = "model/{model_name}"  # adjust if different
+#Model
+GET_MODEL_PREDICTION  = "/models/{model_name}"  # adjust if different
+
+# Prediction-related
+CREATE_PREDICTION = "/predictions/create-prediction"  # POST
+DELETE_PREDICTIONS_BY_USER = "/predictions/user/{user_id}"

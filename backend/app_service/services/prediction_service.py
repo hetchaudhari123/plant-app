@@ -1,15 +1,13 @@
 from fastapi import HTTPException, UploadFile
 from datetime import datetime, timedelta
-from services.prediction_service import get_prediction  # function to call model_service
 import time
 from config.config import settings
 import uuid
 from datetime import datetime, timezone
 from fastapi import UploadFile, HTTPException
-from db import db_conn  # your async MongoDB connection
-from services.prediction_service import get_prediction
 import cloudinary
 import cloudinary.uploader
+from crud_apis.predictions_api import get_prediction, create_prediction
 
 
 async def predict_service(model_id: str, file: UploadFile, user_id: str):
@@ -46,7 +44,7 @@ async def predict_service(model_id: str, file: UploadFile, user_id: str):
         prediction_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
 
-        doc = {
+        pred_doc = {
             "prediction_id": prediction_id,
             "model_id": model_id,
             "user_id": user_id,
@@ -61,13 +59,11 @@ async def predict_service(model_id: str, file: UploadFile, user_id: str):
         }
 
         # --------------------------
-        # Save in MongoDB
+        # Save via db_service
         # --------------------------
-        result = await db_conn.predictions.insert_one(doc)
-        doc["_id"] = str(result.inserted_id)
+        saved_doc = await create_prediction(pred_doc)
 
-        # Return as Pydantic model
-        return Prediction(**doc)
+        return saved_doc
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
