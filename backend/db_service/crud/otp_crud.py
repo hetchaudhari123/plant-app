@@ -12,10 +12,6 @@ async def get_otp_by_code(otp_code: str):
 
 
 async def create_otp(otp_doc: dict):
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
-    
-    # 2) Convert to ISO 8601 string
-    otp_doc["expires_at"] = expires_at.isoformat()
 
     result = await db_conn.otps_collection.insert_one(otp_doc)
     otp_doc["_id"] = str(result.inserted_id)  # serialize ObjectId

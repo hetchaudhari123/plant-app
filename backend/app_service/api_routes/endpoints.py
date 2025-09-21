@@ -31,7 +31,7 @@ DELETE_USER = "/users/{user_id}"                        # DELETE
 UPDATE_USER_PROFILE_PIC = "/users/{user_id}/profile-pic" # PUT
 
 #Model
-GET_MODEL_PREDICTION  = "/models/{model_name}"  # adjust if different
+GET_MODEL_PREDICTION  = "/models/predict/{model_name}"  # adjust if different
 
 # Prediction-related
 CREATE_PREDICTION = "/predictions/create-prediction"  # POST

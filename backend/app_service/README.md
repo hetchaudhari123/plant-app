@@ -50,3 +50,5 @@ uv run python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 
 To Check delete account at the end
+
+Update expires_at such that it is not used in app_service

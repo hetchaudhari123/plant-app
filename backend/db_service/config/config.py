@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     OTP_EXPIRE_MINUTES: int = 10
     RESET_PASSWORD_TOKEN_EXPIRY_MINUTES: int
 
+    PREDICTION_EXPIRY_HOURS: int
+
+
     class Config:
         env_file = ".env"
 

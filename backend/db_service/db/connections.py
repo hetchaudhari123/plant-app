@@ -21,3 +21,6 @@ async def init_db():
 
     # Create TTL index for OTPs
     await otps_collection.create_index("expires_at", expireAfterSeconds=0)
+
+    # TTL index for predictions (auto-expire after expires_at)
+    await predictions_collection.create_index("expires_at", expireAfterSeconds=0)

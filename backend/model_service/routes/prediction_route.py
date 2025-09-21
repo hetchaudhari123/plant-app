@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, Depends
+from fastapi import APIRouter, UploadFile, Depends, File
 from models.initializer import setup_models
 from services.prediction_service import predict_service
 from dependencies import get_manager, get_idx2label
@@ -8,7 +8,7 @@ router = APIRouter()
 @router.post("/predict/{model_name}")
 async def predict(
     model_name: str,
-    file: UploadFile,
+    file: UploadFile = File(...),
     manager = Depends(get_manager),
     idx2label = Depends(get_idx2label)
 ):

@@ -41,4 +41,5 @@ async def predict_service(model_name: str, file: UploadFile, manager: ModelManag
         return result
 
     except Exception as e:
+        print("....THE ERROR....", str(e))
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")

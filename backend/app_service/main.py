@@ -1,6 +1,8 @@
 from fastapi import FastAPI
-from routes import auth_router, profile_router, prediction_router
-import config.cloudinary
+from routes.prediction_router import router as prediction_router
+from routes.auth_router import router as auth_router
+from routes.profile_router import router as profile_router
+import config.cloudinary 
 
 # Create FastAPI app with lifespan
 app = FastAPI(title="Plant App 🌱")
