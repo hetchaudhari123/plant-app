@@ -6,16 +6,18 @@ import torch.nn as nn
 from PIL import Image
 import numpy as np
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from pydantic import Json
 
 
 class PlantModel:
-    def __init__(self, name: str, model_path: str, model_type: str, num_classes: int = None, model_order: list = None):
+    def __init__(self, name: str, model_path: str, model_type: str, num_classes: int = None, model_order: list = None,
+                 device = "cpu"):
         """
         model_type: 'pytorch' or 'sklearn'
         num_classes: required for PyTorch models to rebuild the classifier
         """
         self.name = name
+        self.device = device
         self.model_type = model_type
         self.model_path = model_path
         self.num_classes = num_classes
@@ -26,10 +28,10 @@ class PlantModel:
     def load_model(self) -> Any:
         if self.model_type == "pytorch":
             model = self.build_model_arch()
-            checkpoint = torch.load(self.model_path, map_location=device)
+            checkpoint = torch.load(self.model_path, map_location=self.device)
             state_dict = checkpoint.get("model_state", checkpoint)
             model.load_state_dict(state_dict)
-            model.to(device)
+            model.to(self.device)
             model.eval()
             return model
         elif self.model_type == "sklearn":
@@ -40,16 +42,16 @@ class PlantModel:
     def build_model_arch(self) -> nn.Module:
         """Rebuild the architecture with the correct number of classes"""
         if self.name.startswith("resnet"):
-            model = getattr(tv_models, self.name)(pretrained=False)
+            model = getattr(tv_models, self.name)(weights = None)
             model.fc = nn.Linear(model.fc.in_features, self.num_classes)
         elif self.name.startswith("efficientnet"):
-            model = getattr(tv_models, self.name)(pretrained=False)
+            model = getattr(tv_models, self.name)(weights = None)
             model.classifier[1] = nn.Linear(model.classifier[1].in_features, self.num_classes)
         elif self.name.startswith("densenet"):
-            model = getattr(tv_models, self.name)(pretrained=False)
+            model = getattr(tv_models, self.name)(weights = None)
             model.classifier = nn.Linear(model.classifier.in_features, self.num_classes)
         elif self.name.startswith("mobilenet"):
-            model = getattr(tv_models, self.name)(pretrained=False)
+            model = getattr(tv_models, self.name)(weights = None)
             model.classifier[3] = nn.Linear(model.classifier[3].in_features, self.num_classes)
         else:
             raise ValueError(f"Model {self.name} not supported")
@@ -57,6 +59,7 @@ class PlantModel:
 
     def preprocess_input(self, image: Image.Image) -> torch.Tensor:
         """Apply standard preprocessing for PyTorch base models and return a batch tensor"""
+        image = image.convert("RGB")
         transform = transforms.Compose(
             [
                 transforms.Resize(256),
@@ -66,9 +69,9 @@ class PlantModel:
             ]
         )
         input_tensor = transform(image).unsqueeze(0)  # Add batch dim
-        return input_tensor.to(device)
+        return input_tensor.to(self.device)
 
-    def _get_base_model_probs_from_manager(self, image: Image.Image, manager) -> np.ndarray:
+    def _get_base_model_probs_from_manager(self, image: Image.Image, manager: Any) -> np.ndarray:
         """
         Given a PIL image and a ModelManager, ask each non-ensemble PyTorch model for probabilities,
         then concatenate them into a single 1D feature vector (shape (1, total_features)).
@@ -123,41 +126,24 @@ class PlantModel:
             elif self.model_type == "sklearn":
                 # For the stacking ensemble: gather base model probs via manager and then call sklearn
                 stacked_features = self._get_base_model_probs_from_manager(input_data, manager)
-                # sklearn predict / predict_proba
+
+                prediction = self.model.predict(stacked_features)  # class indices, shape (1,)
+                probs = None
+
                 if hasattr(self.model, "predict_proba"):
-                    out = self.model.predict_proba(stacked_features)  # (1, num_classes) or (1, n_targets)
-                else:
-                    out = self.model.predict(stacked_features)  # (1,) class indices
-                out = np.asarray(out)
-                self.last_output = out
-                return out
+                    probs = self.model.predict_proba(stacked_features)  # (1, num_classes)
+
+                # Store last output as tuple (prediction, probs)
+                self.last_output = (prediction, probs)
+
+                # Always return both, so caller can decide how to use
+                return prediction, probs
+
 
             else:
                 raise ValueError("Unsupported model type")
 
-        # If input_data is a torch tensor (assume preprocessed batch for pytorch)
-        if isinstance(input_data, torch.Tensor):
-            if self.model_type != "pytorch":
-                raise ValueError("Torch tensor input is only valid for PyTorch models.")
-            input_tensor = input_data.to(device)
-            with torch.no_grad():
-                out = self.model(input_tensor)
-                probs = torch.softmax(out, dim=1).cpu().numpy()
-            self.last_output = probs
-            return probs
-
-        # If input_data is numpy array / features (for sklearn)
-        if isinstance(input_data, np.ndarray):
-            if self.model_type != "sklearn":
-                raise ValueError("Numpy array input is only valid for sklearn models in this API.")
-            # If this numpy array is already stacked features (1, n_features), directly predict
-            if hasattr(self.model, "predict_proba"):
-                out = self.model.predict_proba(input_data)
-            else:
-                out = self.model.predict(input_data)
-            out = np.asarray(out)
-            self.last_output = out
-            return out
+ 
 
         # Fallback: unsupported input
         raise ValueError("Unsupported input_data type for predict(). Pass a PIL.Image, torch.Tensor or numpy array.")

@@ -1,20 +1,43 @@
-from fastapi import FastAPI, UploadFile
-from PIL import Image
-import models.registry
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from routes.prediction_route import router as model_router
+from dependencies import get_manager  # get_idx2label not needed for health
 
-app = FastAPI()
+# ------------------------
+# FastAPI app initialization
+# ------------------------
+app = FastAPI(
+    title="Plant Model Service",
+    description="Microservice for plant disease predictions using multiple models",
+    version="1.0.0"
+)
 
+# ------------------------
+# CORS (optional)
+# ------------------------
+origins = ["*"]  # adjust to your frontend domain(s) for security
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# ------------------------
+# Include the routes
+# ------------------------
+app.include_router(model_router, prefix="/model", tags=["Model"])
 
-
-# Prediction endpoint
-@app.post("/predict/{model_name}")
-async def predict(model_name: str, file: UploadFile):
-    image = Image.open(file.file).convert("RGB")
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor()
-    ])
-    input_tensor = transform(image).unsqueeze(0)  # add batch dim
-    output = manager.predict(model_name, input_tensor)
-    return {"model": model_name, "output": str(output)}
+# ------------------------
+# Root health endpoint using dependency injection
+# ------------------------
+@app.get("/", tags=["Health"])
+async def root(manager=Depends(get_manager)):
+    """
+    Health check endpoint returning status and loaded models.
+    """
+    return {
+        "status": "model_service running",
+        "models_loaded": list(manager.models.keys())
+    }

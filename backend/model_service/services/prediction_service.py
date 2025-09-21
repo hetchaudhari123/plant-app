@@ -1,30 +1,44 @@
 from fastapi import UploadFile, HTTPException
 from PIL import Image
-import torch
-from torchvision import transforms
-from models.registry import manager
+from models import ModelManager
 
-async def predict_model(model_name: str, file: UploadFile):
+async def predict_service(model_name: str, file: UploadFile, manager: ModelManager, idx2label):
     try:
-        # Open image
+        # Load image
         image = Image.open(file.file).convert("RGB")
 
-        # Transform image for PyTorch models
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor()
-        ])
-        input_tensor = transform(image).unsqueeze(0)  # Add batch dimension
+        # Predict
+        output = manager.predict(model_name, image)
 
-        # Run prediction
-        output = manager.predict(model_name, input_tensor)
+        # Handle sklearn vs torch output
+        if model_name == "ensemble":
+            prediction, probs = output  # unpack tuple
+            predicted_idx = int(prediction[0])
+            predicted_class = idx2label[str(predicted_idx)]
+            confidence = float(probs[0][predicted_idx]) if probs is not None else None
 
-        # Convert output to string (or JSON serializable)
-        return {"model": model_name, "output": str(output)}
+            result = {
+                "model": model_name,
+                "prediction": predicted_class,
+                "confidence": confidence,
+                "raw_output": probs[0].tolist() if probs is not None else None
+            }
 
-    except FileNotFoundError:
-        raise HTTPException(status_code=400, detail="Invalid file")
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        else:
+            probs = output[0]  # since output is (1, num_classes) numpy array
+            predicted_idx = int(probs.argmax())
+            predicted_class = idx2label[str(predicted_idx)]
+            confidence = float(probs[predicted_idx])
+
+            result = {
+                "model": model_name,
+                "prediction": predicted_class,
+                "confidence": confidence,
+                "raw_output": probs.tolist()
+            }
+
+
+        return result
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")

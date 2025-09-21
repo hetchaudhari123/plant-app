@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, Any
 from typing import Optional, Dict
 from datetime import datetime, timezone
 from enum import Enum
@@ -9,9 +9,6 @@ class PredictionStatus(str, Enum):
     failed = "failed"
 
 
-class PredictionResult(BaseModel):
-    label: str
-    confidence: int  # 0-100, or you can choose 0-1 if you prefer float
 
 
 class Prediction(BaseModel):
@@ -20,7 +17,9 @@ class Prediction(BaseModel):
     user_id: str        # reference to User.id
     image_url: str
     status: PredictionStatus  # restricted to enum values
-    result: Optional[PredictionResult] = None
+    prediction: Optional[str] = None
+    confidence: Optional[float] = None
+    raw_output: Optional[Any] = None 
     processing_time: Optional[float] = None  # in seconds
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: Optional[datetime] = None  # e.g., 48h later

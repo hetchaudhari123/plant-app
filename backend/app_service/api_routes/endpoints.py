@@ -29,3 +29,6 @@ GET_USER_BY_RESET_TOKEN = "/users/reset-token/{token}" # GET
 UPDATE_USER_PROFILE = "/users/{user_id}/profile"       # PUT
 DELETE_USER = "/users/{user_id}"                        # DELETE
 UPDATE_USER_PROFILE_PIC = "/users/{user_id}/profile-pic" # PUT
+
+#Predictions
+MODEL_SERVICE_URL = "model/{model_name}"  # adjust if different

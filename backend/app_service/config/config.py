@@ -14,12 +14,15 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
     OTP_EXPIRE_MINUTES: int = 10
+    PREDICTION_EXPIRY_HOURS: int
 
     MAIL_USER: str
     MAIL_PASS: str
     RESET_PASSWORD_TOKEN_EXPIRY_MINUTES: int
 
     BACKEND_DB_URL: str
+    
+    BACKEND_MODEL_URL: str
 
     FRONTEND_URL: str
     class Config:
