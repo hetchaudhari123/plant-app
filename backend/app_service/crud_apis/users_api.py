@@ -3,6 +3,7 @@ from config.config import settings
 from api_routes.endpoints import GET_USER_BY_EMAIL, CREATE_USER, GET_USER_BY_ID, UPDATE_USER_PASSWORD, UPDATE_RESET_TOKEN, GET_USER_BY_RESET_TOKEN, UPDATE_USER_PROFILE, DELETE_USER, UPDATE_USER_PROFILE_PIC
 from pydantic import EmailStr
 from datetime import datetime, timezone
+from typing import Optional
 
 async def get_user_by_email(email: EmailStr):
     async with httpx.AsyncClient() as client:
@@ -39,9 +40,9 @@ async def update_user_password(user_id: str, new_password_hash: str):
 
 
 
-async def update_reset_token(user_id: str, token: str, expires_at: str):
+async def update_reset_token(user_id: str, token: Optional[str], expires_at: Optional[datetime]):
     # Serialize to ISO format string
-    expires_at_str = expires_at.isoformat()
+    expires_at_str = expires_at.isoformat() if expires_at else None
     async with httpx.AsyncClient() as client:
         resp = await client.put(
             settings.BACKEND_DB_URL + UPDATE_RESET_TOKEN.format(user_id=user_id),

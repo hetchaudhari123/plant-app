@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import EmailStr, BaseModel
 import datetime
 from crud.user_crud import get_user_by_email, create_user, get_user_by_id, update_user_password, update_reset_token, get_user_by_reset_token, update_user_profile,delete_user, update_user_profile_pic
+from typing import Optional
 
 router = APIRouter()
 
@@ -10,8 +11,8 @@ class UpdatePasswordRequest(BaseModel):
     new_password_hash: str
 
 class UpdateResetTokenRequest(BaseModel):
-    token: str
-    expires_at: str
+    token: Optional[str]
+    expires_at: Optional[str]
 
 class UpdateProfileRequest(BaseModel):
     update_fields: dict

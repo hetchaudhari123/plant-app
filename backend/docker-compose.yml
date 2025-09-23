@@ -1,0 +1,48 @@
+
+services:
+  db_service:
+    build:
+      context: ./db_service
+    ports:
+      - "8001:8001"
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  model_service:
+    build:
+      context: ./model_service
+    ports:
+      - "8002:8002"
+    restart: always
+    depends_on:
+      db_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  app_service:
+    build:
+      context: ./app_service
+    ports:
+      - "8000:8000"
+    restart: always
+    depends_on:
+      db_service:
+        condition: service_healthy
+      model_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s

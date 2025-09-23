@@ -360,3 +360,7 @@ async def reset_password(token: str, password: str, confirm_password: str):
     # 5) Update password & remove reset token
     await update_user_password(user["id"], hashed_password)
 
+    await update_reset_token(user["id"], token=None, expires_at=None)
+
+
+

@@ -52,7 +52,7 @@ async def send_otp_endpoint(request: OTPRequest):
 
 
 @router.post("/signup", summary="Signup a new user with OTP verification")
-async def route_signup(payload: SignupSchema):
+async def route_signup(payload: SignupSchema = Body(...)):
     await signup_user(
         email=payload.email,
         first_name=payload.first_name,

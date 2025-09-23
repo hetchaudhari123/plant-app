@@ -46,8 +46,8 @@ async def route_update_name(payload: UpdateNameSchema):
 
 
 @router.delete("/delete-account", summary="Delete user account")
-async def route_delete_account(payload: DeleteAccountSchema, response: Response):
-    await delete_account(user_id=payload.user_id, response=response)
+async def route_delete_account(user_id: str, response: Response):
+    await delete_account(user_id=user_id, response=response)
     return {"message": "Account deleted successfully"}
 
 

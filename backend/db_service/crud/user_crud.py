@@ -1,4 +1,5 @@
 import db.connections as db_conn
+from typing import Optional
 
 async def get_user_by_email(email: str):
     return await db_conn.users_collection.find_one({"email": email})
@@ -28,7 +29,8 @@ async def update_user_password(user_id: str, new_password_hash: str):
 
 
 
-async def update_reset_token(user_id: str, token: str, expires_at: str):
+# async def update_reset_token(user_id: str, token: str, expires_at: str):
+async def update_reset_token(user_id: str, token: Optional[str], expires_at: Optional[str]):
     updated_user = await db_conn.users_collection.update_one(
         {"id": user_id},
         {
