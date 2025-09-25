@@ -1,8 +1,6 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    MONGO_URI: str
-    MONGO_DB_NAME: str = "plant_app"
 
     ACCESS_SECRET_KEY: str
     REFRESH_SECRET_KEY: str

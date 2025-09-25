@@ -32,10 +32,15 @@ app.include_router(model_router, prefix="/models", tags=["Model"])
 # ------------------------
 # Root health endpoint using dependency injection
 # ------------------------
-@app.get("/", tags=["Health"])
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+@app.get("/")
 async def root(manager=Depends(get_manager)):
     """
-    Health check endpoint returning status and loaded models.
+    Endpoint returning status and loaded models.
     """
     return {
         "status": "model_service running",

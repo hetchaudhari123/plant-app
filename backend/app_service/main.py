@@ -14,6 +14,11 @@ app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(profile_router, prefix="/profile", tags=["Profile"])
 app.include_router(prediction_router, prefix="/prediction", tags=["Prediction"])
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.get("/")
 def root():
     return {"message": "Welcome to Plant App 🌱 API"}

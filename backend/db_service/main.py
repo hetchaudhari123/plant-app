@@ -54,6 +54,11 @@ app.include_router(otps_router, prefix="/otps", tags=["OTPs"])
 app.include_router(predictions_router, prefix="/predictions", tags=["Predictions"])
 app.include_router(jobs_router, prefix="/jobs", tags=["Jobs"])
 
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 # ----------------------------
 # Root endpoint
 # ----------------------------
