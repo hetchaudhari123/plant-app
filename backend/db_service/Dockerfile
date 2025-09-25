@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Install curl (and clean up cache to keep image small)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends curl mongodb && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy pre-built wheels from builder
@@ -29,4 +29,5 @@ RUN pip install --no-cache /wheels/* && \
 COPY . .
 
 # Run Gunicorn + Uvicorn
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8001", "--workers", "4"]
+CMD mongod --bind_ip 0.0.0.0 --fork --logpath /var/log/mongodb.log && \
+    gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:8001 --workers 4
