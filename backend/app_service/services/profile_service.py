@@ -13,6 +13,7 @@ from crud_apis.users_api import get_user_by_email, create_user, get_user_by_id, 
 from crud_apis.jobs_api import delete_jobs_by_user
 
 from crud_apis.otp_api import delete_otps_for_email, delete_otps_by_user, create_otp, get_otp_for_email_change, delete_otps_by_user, delete_otps_for_email
+import db.connections as db_conn
 
 
 async def update_profile_name(user_id: str, first_name: str = None, last_name: str = None):
@@ -21,7 +22,8 @@ async def update_profile_name(user_id: str, first_name: str = None, last_name: s
     Only update profile_pic_url if it is still the default DiceBear avatar.
     """
     # 1) Fetch user
-    user = await get_user_by_id(user_id)
+    user = await db_conn.users_collection.find_one({"id": user_id})
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -50,7 +52,11 @@ async def update_profile_name(user_id: str, first_name: str = None, last_name: s
         raise HTTPException(status_code=400, detail="No fields provided for update")
 
     # 4) Perform update
-    updated_user = await update_user_profile(user_id, update_fields)
+    await db_conn.users_collection.find_one_and_update(
+        {"id": user_id},
+        {"$set": update_fields},
+        return_document=True  # returns the updated document
+    )
 
 
 async def delete_account(user_id: str, response: Response):
@@ -59,17 +65,20 @@ async def delete_account(user_id: str, response: Response):
     """
 
     # 1) Check if user exists
-    user = await get_user_by_id(user_id)
+    user = await db_conn.users_collection.find_one({"id": user_id})
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # 2) Delete the user
-    await delete_user(user_id)
+    await db_conn.users_collection.delete_one({"id": user_id})
+
 
     # 3) Delete related data (cascade cleanup)
-    await delete_predictions_by_user(user_id)
-    await delete_jobs_by_user(user_id)
-    await delete_otps_for_email(user["email"])
+    await db_conn.predictions_collection.delete_many({"user_id": user_id})
+    # await delete_jobs_by_user(user_id)
+    await db_conn.otps_collection.delete_many({"email": user["email"]})
+
 
 
     # 4) Clear authentication cookies
@@ -82,7 +91,8 @@ async def delete_account(user_id: str, response: Response):
 
 async def update_profile_picture(user_id: str, file: UploadFile = File(...)):
     # 1) Check if user exists
-    user = await get_user_by_id(user_id)
+    user = await db_conn.users_collection.find_one({"id": user_id})
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -100,7 +110,11 @@ async def update_profile_picture(user_id: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {str(e)}")
 
     # 3) Update backend
-    update_result = await update_user_profile_pic(user_id, new_pic_url)
+    update_result = await db_conn.users_collection.find_one_and_update(
+        {"id": user_id},
+        {"$set": {"profile_pic_url": new_pic_url}},
+        return_document=True  # returns the updated document
+    )
     if not update_result or "id" not in update_result:
         raise HTTPException(status_code=400, detail="Profile picture update failed")
 
@@ -121,9 +135,10 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
 
 
     # 0) Delete any existing OTPs for this user and purpose
-    await delete_otps_by_user(user_id)
+    await db_conn.otps_collection.delete_many({"user_id": user_id})
+
     # 1) Find the user
-    user = await get_user_by_id(user_id)
+    user = await db_conn.users_collection.find_one({"id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -141,7 +156,8 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
         "purpose":"email_change",
     }
 
-    await create_otp(otp_entry)
+    await db_conn.otps_collection.insert_one(otp_entry)
+
 
     # 1) Set up Jinja2 environment (pointing to your templates folder)
     env = Environment(
@@ -175,20 +191,28 @@ async def confirm_email_change(user_id: str, new_email: str, otp_code: str):
     Confirm the email change by validating the OTP and updating the user's email.
     """
 
+
     # 1) Find OTP entry
-    otp_entry = await get_otp_for_email_change(user_id, new_email, otp_code)
+    otp_entry = await db_conn.otps_collection.find_one({
+        "user_id": user_id,
+        "email": new_email,
+        "otp": otp_code
+    })
 
     if not otp_entry:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
 
     # 2) Mark OTP as verified
-    await delete_otps_for_email(new_email)
+    await db_conn.otps_collection.delete_many({"email": new_email})
     
 
     # 3) Update user's email in users_collection
     update_fields = {"email": new_email}
-    result = await update_user_profile(user_id, update_fields)
-
+    result = await db_conn.users_collection.find_one_and_update(
+        {"id": user_id},
+        {"$set": update_fields},
+        return_document=True  # returns the updated document
+    )
 
     # if result.modified_count == 0:
     if not result or "id" not in result:

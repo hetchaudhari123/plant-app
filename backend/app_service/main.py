@@ -3,9 +3,28 @@ from routes.prediction_router import router as prediction_router
 from routes.auth_router import router as auth_router
 from routes.profile_router import router as profile_router
 import config.cloudinary 
+from contextlib import asynccontextmanager
+from db.connections import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ----- Startup logic -----
+    await init_db()  # initialize MongoDB connection
+    print("✅ MongoDB connected successfully")
+
+
+    yield  # application runs here
+
+    # ----- Shutdown logic (optional) -----
+    # e.g., close DB connections if needed
+    print("DB Service shutting down")
+
+
 
 # Create FastAPI app with lifespan
-app = FastAPI(title="Plant App 🌱")
+app = FastAPI(title="Plant App 🌱", lifespan=lifespan)
+
 
 # ----------------------------
 # Include routers

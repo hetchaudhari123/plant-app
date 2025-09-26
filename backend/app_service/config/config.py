@@ -1,6 +1,12 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    MONGO_URI: str
+    MONGO_DB_NAME: str
+
+    OTP_EXPIRE_MINUTES: int = 10
+    RESET_PASSWORD_TOKEN_EXPIRY_MINUTES: int
+    PREDICTION_EXPIRY_HOURS: int
 
     ACCESS_SECRET_KEY: str
     REFRESH_SECRET_KEY: str
@@ -11,12 +17,9 @@ class Settings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
-    OTP_EXPIRE_MINUTES: int = 10
-    PREDICTION_EXPIRY_HOURS: int
 
     MAIL_USER: str
     MAIL_PASS: str
-    RESET_PASSWORD_TOKEN_EXPIRY_MINUTES: int
 
     BACKEND_DB_URL: str
     

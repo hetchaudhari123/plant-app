@@ -8,7 +8,7 @@ from fastapi import UploadFile, HTTPException
 import cloudinary
 import cloudinary.uploader
 from crud_apis.predictions_api import get_prediction, create_prediction
-
+import db.connections as db_conn
 
 async def predict_service(model_name: str, file: UploadFile, user_id: str):
     """
@@ -61,9 +61,11 @@ async def predict_service(model_name: str, file: UploadFile, user_id: str):
         # --------------------------
         # Save via db_service
         # --------------------------
-        saved_doc = await create_prediction(pred_doc)
+        saved_doc = await db_conn.predictions_collection.insert_one(pred_doc)
 
-        return saved_doc
+
+        pred_doc["_id"] = str(saved_doc.inserted_id)
+        return pred_doc
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")

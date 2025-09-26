@@ -1,30 +1,44 @@
-# Use the official PyTorch image with CUDA 12.1 and cuDNN 8
-FROM pytorch/pytorch:2.3.0-cuda12.1-cudnn8-runtime
+# ---- Stage 1: Build wheels ----
+FROM python:3.11.2-slim AS builder
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
-# Set the working directory
 WORKDIR /app
 
-# Install curl
+# Configure pip timeout (15 minutes = 900s)
+ENV PIP_DEFAULT_TIMEOUT=900
+
+# Install build deps (needed to compile some libs like scipy, lxml, etc.)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential gcc g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Upgrade pip + build wheels
+RUN pip install --upgrade pip setuptools wheel \
+    && pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+# ---- Stage 2: Final image ----
+FROM python:3.11.2-slim
+
+WORKDIR /app
+
+# Configure pip timeout (15 minutes = 900s)
+ENV PIP_DEFAULT_TIMEOUT=900
+
+# Install only runtime deps (curl, etc.)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
-COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir --timeout 300 -r requirements.txt \
-    && pip install gunicorn  
+# Copy wheels from builder and install them
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* \
+    && pip install --no-cache-dir gunicorn
 
 # Copy application code
 COPY . .
 
-# Expose port FastAPI will run on
 EXPOSE 8002
 
-# Run the app using Gunicorn with Uvicorn workers
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4"]

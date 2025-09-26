@@ -10,3 +10,5 @@ backend/db_service/.venv
 backend/db_service/__pycache__
 backend/model_service/.venv
 backend/app_service/.venv
+frontend/Agricultural Themed Web App/.env
+frontend/Agricultural Themed Web App/node_modules
