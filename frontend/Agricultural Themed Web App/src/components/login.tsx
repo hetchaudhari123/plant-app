@@ -1,26 +1,74 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Leaf, Mail, Lock, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
+import { toast } from 'sonner';
+import { apiConnector } from '../services/apiconnector';
+import { API_ROUTES } from '../config/apiRoutes';
+import { login, sendOtp } from '../services/authService';
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "../redux/store";
+import { loginUser, sendOtpUser, signupUser } from '../redux/slices/authSlice';
+
 
 export function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
+
+    try {
+      if (!isLogin) {
+        // 1️⃣ Validate signup fields
+        if (formData.password !== formData.confirmPassword) {
+          toast.error("Passwords do not match!");
+          return;
+        }
+        if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+          toast.error("Please fill in all fields");
+          return;
+        }
+
+        // 2️⃣ Call sendOtp API
+        const resultAction = await dispatch(sendOtpUser(formData.email));
+
+        if (sendOtpUser.fulfilled.match(resultAction)) {
+          toast.success("OTP sent! Please verify.");
+          navigate("/confirm-otp", { state: { formData } }); // pass formData for signup
+        } else {
+          toast.error(resultAction.payload as string);
+        }
+      } else {
+        // 4️⃣ Handle login via thunk
+        const resultAction = await dispatch(
+          loginUser({ email: formData.email, password: formData.password })
+        );
+
+        if (loginUser.fulfilled.match(resultAction)) {
+          toast.success("Login successful!");
+          navigate("/"); // dashboard or home
+        } else {
+          toast.error(resultAction.payload as string);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error:", error);
+      toast.error(error?.message || "Something went wrong!");
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,22 +104,41 @@ export function Login() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                      className="pl-10 border-green-200 focus:border-green-500"
-                    />
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="firstName"
+                        name="firstName"
+                        type="text"
+                        placeholder="John"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        required
+                        className="pl-10 border-green-200 focus:border-green-500"
+                      />
+                    </div>
                   </div>
-                </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="lastName"
+                        name="lastName"
+                        type="text"
+                        placeholder="Doe"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        required
+                        className="pl-10 border-green-200 focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className="space-y-2">
@@ -99,7 +166,7 @@ export function Login() {
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    // placeholder="••••••••"
                     value={formData.password}
                     onChange={handleInputChange}
                     required
@@ -124,7 +191,7 @@ export function Login() {
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
+                      // placeholder="••••••••"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       required
@@ -137,7 +204,7 @@ export function Login() {
               {isLogin && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <input
+                    {/* <input
                       id="remember-me"
                       name="remember-me"
                       type="checkbox"
@@ -145,7 +212,7 @@ export function Login() {
                     />
                     <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                       Remember me
-                    </label>
+                    </label> */}
                   </div>
                   <Link
                     to="/forgot-password"
@@ -158,7 +225,8 @@ export function Login() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-md"
+                className="cursor-pointer w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-md"
+
               >
                 {isLogin ? 'Sign In' : 'Create Account'}
               </Button>
@@ -174,7 +242,7 @@ export function Login() {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
+              {/* <div className="mt-6 grid grid-cols-2 gap-3">
                 <Button variant="outline" className="border-green-200 hover:bg-green-50">
                   <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                     <path
@@ -202,7 +270,7 @@ export function Login() {
                   </svg>
                   Facebook
                 </Button>
-              </div>
+              </div> */}
             </div>
 
             <div className="mt-6 text-center">
@@ -212,7 +280,7 @@ export function Login() {
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="ml-1 text-sm text-green-600 hover:text-green-500"
+                className="cursor-pointer ml-1 text-sm text-green-600 hover:text-green-500"
               >
                 {isLogin ? 'Sign up' : 'Sign in'}
               </button>

@@ -134,14 +134,14 @@ export function ForgotPassword() {
           </CardContent>
         </Card>
 
-        <div className="text-center">
+        {/* <div className="text-center">
           <p className="text-sm text-gray-600">
             Remember your password?{' '}
             <Link to="/login" className="text-green-600 hover:text-green-500">
               Sign in
             </Link>
           </p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

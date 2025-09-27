@@ -266,7 +266,7 @@ export function Profile() {
                   <Label htmlFor="farmSize">Farm Size</Label>
                   <Select 
                     value={isEditing ? editedProfile.farmSize : profile.farmSize}
-                    onValueChange={(value) => handleInputChange('farmSize', value)}
+                    onValueChange={(value: string)=> handleInputChange('farmSize', value)}
                     disabled={!isEditing}
                   >
                     <SelectTrigger className="border-green-200">
@@ -317,7 +317,7 @@ export function Profile() {
                   </div>
                   <Switch
                     checked={notifications.emailAlerts}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked: boolean) => 
                       setNotifications(prev => ({ ...prev, emailAlerts: checked }))
                     }
                   />
@@ -330,7 +330,7 @@ export function Profile() {
                   </div>
                   <Switch
                     checked={notifications.pushNotifications}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked: boolean) => 
                       setNotifications(prev => ({ ...prev, pushNotifications: checked }))
                     }
                   />
@@ -343,7 +343,7 @@ export function Profile() {
                   </div>
                   <Switch
                     checked={notifications.weeklyReports}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked: boolean) => 
                       setNotifications(prev => ({ ...prev, weeklyReports: checked }))
                     }
                   />
@@ -356,7 +356,7 @@ export function Profile() {
                   </div>
                   <Switch
                     checked={notifications.marketingEmails}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked: boolean) => 
                       setNotifications(prev => ({ ...prev, marketingEmails: checked }))
                     }
                   />

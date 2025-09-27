@@ -144,7 +144,7 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
 
     # 2) Validate password
     if not verify_password(current_password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Current password is incorrect")
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
 
     # 3) Generate secure 6-digit OTP
     otp_code = generate_secure_otp(length=6)

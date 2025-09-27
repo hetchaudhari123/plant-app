@@ -1,8 +1,8 @@
 from uuid import uuid4
 from utils.security_utils import hash_password, verify_password
-from fastapi import HTTPException, Response, status
+from fastapi import HTTPException, Response, status, Request
 from datetime import datetime, timedelta, timezone, timedelta
-from jose import jwt
+from jose import jwt, JWTError, ExpiredSignatureError
 from config.config import settings
 from pydantic import EmailStr
 
@@ -17,7 +17,7 @@ from crud_apis.users_api import get_user_by_email, create_user, get_user_by_id, 
 import secrets
 from fastapi.templating import Jinja2Templates
 from crud_apis.otp_api import delete_otps_for_email, get_otp_by_code, create_otp, get_otp_by_email_and_code
-
+from utils.auth_utils import create_access_token, create_refresh_token
 
 async def send_otp(email: str):
     """
@@ -152,6 +152,13 @@ async def signup_user(email: EmailStr, first_name: str, last_name: str, password
         is_html=True
     )
 
+    return {
+        "id": user_doc["id"],
+        "email": user_doc["email"],
+        "first_name": first_name,
+        "last_name": last_name,
+        "profile_pic_url": profile_pic_url
+    }
 
 
 
@@ -165,37 +172,23 @@ async def login_user(email: EmailStr, password: str, response: Response):
     user = await db_conn.users_collection.find_one({"email": email})
 
     if not user:
-        raise HTTPException(status_code=401, detail="User with the given email not found")
+        raise HTTPException(status_code=404, detail="User with the given email not found")
 
     # 2) Verify password
     if not verify_password(password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Passwords do not match")
+        raise HTTPException(status_code=400, detail="Passwords do not match")
 
     # 3) Create tokens with token_version
     now = datetime.now(timezone.utc)
     token_version = user.get("token_version", 0)
 
-    access_token = jwt.encode(
-        {
-            "sub": str(user["id"]),
-            "type": "access",
-            "token_version": token_version,
-            "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-        },
-        settings.ACCESS_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM,
-    )
 
-    refresh_token = jwt.encode(
-        {
-            "sub": str(user["id"]),
-            "type": "refresh",
-            "token_version": token_version,
-            "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
-        },
-        settings.REFRESH_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM,
-    )
+    access_token = create_access_token(str(user["id"]), token_version)
+
+
+    refresh_token = create_refresh_token(str(user["id"]), token_version)
+
+
 
     # 4) Store tokens in HttpOnly cookies
     response.set_cookie(
@@ -217,7 +210,7 @@ async def login_user(email: EmailStr, password: str, response: Response):
 
     # 5) Remove sensitive field
     user.pop("password_hash", None)
-
+    return user
 
 
 
@@ -230,7 +223,7 @@ async def change_password(user_id: str, old_password: str, new_password: str, co
 
     # 2) Verify old password
     if not verify_password(old_password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Old password is incorrect")
+        raise HTTPException(status_code=400, detail="Old password is incorrect")
 
     # 3) Check new password and confirmation match
     if new_password != confirm_password:
@@ -257,19 +250,10 @@ async def change_password(user_id: str, old_password: str, new_password: str, co
 
     # 7) Create new tokens for current session
     now = datetime.now(timezone.utc)
-    access_token = jwt.encode(
-        {"sub": user_id, "type": "access", "token_version": new_token_version,
-         "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)},
-        settings.ACCESS_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM,
-    )
-    refresh_token = jwt.encode(
-        {"sub": user_id, "type": "refresh", "token_version": new_token_version,
-         "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)},
-        settings.REFRESH_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM,
-    )
+    access_token = create_access_token(user_id, new_token_version)
 
+
+    refresh_token = create_refresh_token(user_id, new_token_version)
     # 8) Set new cookies
     response.set_cookie(
         key="access_token",
@@ -403,3 +387,76 @@ async def reset_password(token: str, password: str, confirm_password: str):
 
 
 
+
+
+async def refresh_access_token(request: Request, response: Response):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+
+    try:
+        payload = jwt.decode(refresh_token, settings.REFRESH_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid refresh token payload")
+
+        user = await get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # create new tokens
+        # 7) Create new tokens for current session
+        current_token_version = user.get('token_version', 0)
+        now = datetime.now(timezone.utc)
+        # calculate expires timestamps
+        access_expires = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        refresh_expires = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+
+
+        new_access_token = create_access_token(user_id, current_token_version)
+
+
+        new_refresh_token = create_refresh_token(user_id, current_token_version)
+
+
+        # set cookies
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            expires=access_expires.strftime("%a, %d %b %Y %H:%M:%S GMT")  # UTC format
+
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+            expires=refresh_expires.strftime("%a, %d %b %Y %H:%M:%S GMT")  # UTC format
+
+        )
+
+        return {"accessToken": new_access_token}
+
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    
+
+
+async def logout_user(response: Response):
+    """
+    Logout the user by clearing access and refresh token cookies.
+    """
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")

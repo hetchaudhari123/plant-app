@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Response, Body
+from fastapi import APIRouter, Response, Body, Depends, Request
 from pydantic import BaseModel, EmailStr
-from services.auth_service import send_otp, signup_user, login_user, change_password, reset_password, reset_password_token
+from services.auth_service import send_otp, signup_user, login_user, change_password, reset_password, reset_password_token, refresh_access_token, logout_user
+from dependencies.auth import require_user
 
 router = APIRouter()
 
@@ -53,7 +54,7 @@ async def send_otp_endpoint(request: OTPRequest):
 
 @router.post("/signup", summary="Signup a new user with OTP verification")
 async def route_signup(payload: SignupSchema = Body(...)):
-    await signup_user(
+    user = await signup_user(
         email=payload.email,
         first_name=payload.first_name,
         last_name=payload.last_name,
@@ -61,17 +62,30 @@ async def route_signup(payload: SignupSchema = Body(...)):
         confirm_password=payload.confirm_password,  # ✅ add this
         otp_input=payload.otp_input
     )
-    return {"message": "User signed up successfully"}
+    return {
+        "message": "User signed up successfully",
+        "user": user
+    }
 
 @router.post("/login", summary="Login user and return access token")
 async def route_login(payload: LoginSchema, response: Response):
-    await login_user(email=payload.email, password=payload.password, response=response)
-    return {"message": "Login successful"}
+    user = await login_user(email=payload.email, password=payload.password, response=response)
+    return {
+        "message": "Login successful",
+        "user": {
+            "id": str(user["id"]),
+            "email": user["email"],
+            "first_name": user.get("first_name"),
+            "last_name": user.get("last_name"),
+            "profile_pic_url": user.get("profile_pic_url")
+        }
+    }
+
 
 @router.post("/change-password", summary="Change password for logged-in user")
-async def route_change_password(payload: ChangePasswordSchema, response: Response):
+async def route_change_password(payload: ChangePasswordSchema, response: Response, user = Depends(require_user)):
     await change_password(
-        user_id=payload.user_id,
+        user_id=user,
         old_password=payload.old_password,
         new_password=payload.new_password,
         confirm_password=payload.confirm_password,
@@ -98,3 +112,21 @@ async def route_reset_password(payload: ResetPasswordSchema):
         confirm_password=payload.confirm_password
     )
     return {"message": "Password has been reset successfully"}
+
+
+@router.post("/refresh", summary="Refresh access token using refresh token")
+async def route_refresh_access_token(request: Request, response: Response):
+    """
+    Refresh the access token using the refresh token stored in cookies.
+    Sets new access and refresh tokens in HttpOnly cookies.
+    """
+    return await refresh_access_token(request, response)
+
+
+@router.post("/logout", summary="Logout user by clearing cookies")
+async def route_logout(response: Response):
+    """
+    Logout endpoint. Clears HttpOnly cookies for access and refresh tokens.
+    """
+    await logout_user(response)
+    return {"message": "Logged out successfully"}

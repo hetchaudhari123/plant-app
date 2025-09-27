@@ -5,6 +5,7 @@ from routes.profile_router import router as profile_router
 import config.cloudinary 
 from contextlib import asynccontextmanager
 from db.connections import init_db
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
@@ -25,6 +26,16 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app with lifespan
 app = FastAPI(title="Plant App 🌱", lifespan=lifespan)
 
+
+
+origins = ["*"]  # adjust to your frontend domain(s) for security
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ----------------------------
 # Include routers

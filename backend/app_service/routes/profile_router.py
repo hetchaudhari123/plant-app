@@ -1,5 +1,5 @@
 # app/routes/profile_router.py
-from fastapi import APIRouter, UploadFile, File, Response, Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Response, Depends, HTTPException, status, Depends
 from pydantic import BaseModel, EmailStr
 from services.profile_service import (
     update_profile_name,
@@ -8,6 +8,8 @@ from services.profile_service import (
     request_email_change,
     confirm_email_change
 )
+from dependencies.auth import require_user
+
 
 router = APIRouter()
 
@@ -36,30 +38,46 @@ class ConfirmEmailChangeSchema(BaseModel):
 # Routes
 # --------------------
 @router.put("/update-name", summary="Update first and/or last name")
-async def route_update_name(payload: UpdateNameSchema):
+async def route_update_name(
+    payload: UpdateNameSchema,
+    user=Depends(require_user)  # ✅ inject authenticated user here
+):
+    user_id=user  # get user_id from JWT
     await update_profile_name(
-        user_id=payload.user_id,
+        user_id=user_id,
         first_name=payload.first_name,
         last_name=payload.last_name
     )
     return {"message": "Profile name updated successfully"}
 
-
 @router.delete("/delete-account", summary="Delete user account")
-async def route_delete_account(user_id: str, response: Response):
+async def route_delete_account(
+    response: Response        ,         # ✅ comma added after Depends line
+    user=Depends(require_user)  # inject authenticated user
+):
+    user_id=user
     await delete_account(user_id=user_id, response=response)
     return {"message": "Account deleted successfully"}
 
 
 @router.put("/update-profile-picture", summary="Update profile picture")
-async def route_update_profile_picture(user_id: str, file: UploadFile = File(...)):
+async def route_update_profile_picture(
+    user=Depends(require_user),  # inject authenticated user
+    file: UploadFile = File(...)):
+    user_id=user
     resp = await update_profile_picture(user_id=user_id, file=file)
     return resp   # already a dict, FastAPI will convert to JSON
 
+
 @router.post("/request-email-change", summary="Request to change email")
-async def route_request_email_change(payload: EmailChangeRequestSchema):
+async def route_request_email_change(
+    payload: EmailChangeRequestSchema,
+    user=Depends(require_user)  # ✅ inject authenticated user
+):
+    user_id=user  # get user_id from JWT
+
     await request_email_change(
-        user_id=payload.user_id,
+        user_id=user_id,              # use backend-provided ID
         new_email=payload.new_email,
         current_password=payload.current_password
     )
@@ -67,9 +85,14 @@ async def route_request_email_change(payload: EmailChangeRequestSchema):
 
 
 @router.post("/confirm-email-change", summary="Confirm email change with OTP")
-async def route_confirm_email_change(payload: ConfirmEmailChangeSchema):
+async def route_confirm_email_change(
+    payload: ConfirmEmailChangeSchema,
+    user=Depends(require_user)  # ✅ inject authenticated user
+):
+    user_id=user  # get user_id from JWT
+
     await confirm_email_change(
-        user_id=payload.user_id,
+        user_id=user_id,              # use backend-provided ID
         new_email=payload.new_email,
         otp_code=payload.otp_code
     )
