@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { sendOtp, signup } from '../services/authService';
 import type { AppDispatch, RootState } from "../redux/store";
 import { useDispatch, useSelector } from "react-redux";
-import { sendOtpUser, signupUser } from '../redux/slices/authSlice';
+import { setError, setLoading, setUser } from '../redux/slices/authSlice';
 
 export function ConfirmOtp() {
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -61,48 +61,51 @@ export function ConfirmOtp() {
             return;
         }
 
+        dispatch(setLoading(true));   // indicate request in progress
+        dispatch(setError(null));     // clear previous errors
 
         try {
-            // Dispatch the signup thunk with OTP
-            const resultAction = await dispatch(
-                signupUser({ ...formData, otp: otpCode })
-            );
+            const response = await signup({ ...formData, otp: otpCode }); // call authService directly
+            dispatch(setUser(response.user)); // update Redux state
 
-            if (signupUser.fulfilled.match(resultAction)) {
-                console.log("Signup successful:", resultAction.payload);
-                toast.success("OTP verified successfully! Account created.");
-                navigate("/login"); // Redirect to login page
-            } else {
-                toast.error(resultAction.payload as string || "Failed to verify OTP.");
-            }
+            // Success feedback
+            toast.success("OTP verified successfully! Account created.");
+            navigate("/login"); // Redirect to login page
+
         } catch (error: any) {
             console.error("OTP verification error:", error);
-            toast.error(error?.message || "Failed to verify OTP. Please try again.");
+            dispatch(setError(error?.response?.data?.message || "Failed to verify OTP")); // update error state
+            toast.error(error?.response?.data?.message || "Failed to verify OTP. Please try again.");
+
+        } finally {
+            dispatch(setLoading(false)); // stop loading indicator
         }
     };
 
 
 
+
+
     const handleResendOtp = async () => {
-
         try {
-            const resultAction = await dispatch(sendOtpUser(formData.email));
+            // Call the authService directly
+            const response = await sendOtp(formData.email);
 
-            if (sendOtpUser.fulfilled.match(resultAction)) {
-                console.log("Resend OTP response:", resultAction.payload);
-                toast.success("OTP sent successfully!");
-                setTimeLeft(60); // restart countdown
-                setCanResend(false);
-                setOtp(["", "", "", "", "", ""]);
-                inputRefs.current[0]?.focus();
-            } else {
-                toast.error(resultAction.payload as string || "Failed to resend OTP.");
-                setTimeLeft(0);    // allow immediate retry
-                setCanResend(true);
-            }
+            // Success feedback
+            console.log("Resend OTP response:", response);
+            toast.success("OTP sent successfully!");
+            setTimeLeft(60); // restart countdown
+            setCanResend(false);
+            setOtp(["", "", "", "", "", ""]);
+            inputRefs.current[0]?.focus();
+
         } catch (error: any) {
             console.error("Resend OTP failed:", error);
-            toast.error(error?.message || "Failed to resend OTP. Please try again.");
+            toast.error(error?.response?.data?.message || error?.message || "Failed to resend OTP.");
+
+            // Allow immediate retry
+            setTimeLeft(0);
+            setCanResend(true);
         }
     };
 

@@ -12,7 +12,7 @@ import { API_ROUTES } from '../config/apiRoutes';
 import { login, sendOtp } from '../services/authService';
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../redux/store";
-import { loginUser, sendOtpUser, signupUser } from '../redux/slices/authSlice';
+import { setError, setLoading, setUser } from '../redux/slices/authSlice';
 
 
 export function Login() {
@@ -26,50 +26,60 @@ export function Login() {
     email: '',
     password: '',
     confirmPassword: ''
+
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+
+
+// 
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      if (!isLogin) {
-        // 1️⃣ Validate signup fields
-        if (formData.password !== formData.confirmPassword) {
-          toast.error("Passwords do not match!");
-          return;
-        }
-        if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-          toast.error("Please fill in all fields");
-          return;
-        }
+        if (!isLogin) {
+            // 1️⃣ Validate signup fields
+            if (formData.password !== formData.confirmPassword) {
+                toast.error("Passwords do not match!");
+                return;
+            }
+            if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+                toast.error("Please fill in all fields");
+                return;
+            }
 
-        // 2️⃣ Call sendOtp API
-        const resultAction = await dispatch(sendOtpUser(formData.email));
+            // 2️⃣ Call sendOtp API directly
+            await sendOtp(formData.email);
+            toast.success("OTP sent! Please verify.");
+            navigate("/confirm-otp", { state: { formData } }); // pass formData for signup
 
-        if (sendOtpUser.fulfilled.match(resultAction)) {
-          toast.success("OTP sent! Please verify.");
-          navigate("/confirm-otp", { state: { formData } }); // pass formData for signup
         } else {
-          toast.error(resultAction.payload as string);
-        }
-      } else {
-        // 4️⃣ Handle login via thunk
-        const resultAction = await dispatch(
-          loginUser({ email: formData.email, password: formData.password })
-        );
+            // 4️⃣ Handle login via authService directly
+            dispatch(setLoading(true));
+            dispatch(setError(null));
 
-        if (loginUser.fulfilled.match(resultAction)) {
-          toast.success("Login successful!");
-          navigate("/"); // dashboard or home
-        } else {
-          toast.error(resultAction.payload as string);
+            try {
+                const response = await login(formData.email, formData.password)
+
+                // Update Redux state
+                dispatch(setUser(response.user));
+                toast.success("Login successful!");
+                navigate("/"); // dashboard or home
+
+            } catch (err: any) {
+                dispatch(setError(err.response?.data?.message || "Login failed"));
+                toast.error(err.response?.data?.message || "Login failed");
+            } finally {
+                dispatch(setLoading(false));
+            }
         }
-      }
     } catch (error: any) {
-      console.error("Error:", error);
-      toast.error(error?.message || "Something went wrong!");
+        console.error("Error:", error);
+        toast.error(error?.message || "Something went wrong!");
     }
-  };
+};
+
+
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

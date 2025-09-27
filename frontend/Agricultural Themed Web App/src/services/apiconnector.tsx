@@ -1,5 +1,8 @@
 import axios from "axios";
 import { API_BASE_URL } from "../config/api";
+import { logout } from "./authService";
+import { setUser } from "../redux/slices/authSlice";
+import store from "../redux/store";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -13,13 +16,18 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      const { default: store } = await import("../redux/store");
-      store.dispatch({ type: "auth/logout" });
+      try {
+        // Call the backend logout API
+        await logout();
+        store.dispatch(setUser(null));
+      } catch (logoutError) {
+        console.error("Error during automatic logout:", logoutError);
+      }
     }
+
     return Promise.reject(error);
   }
 );
-
 
 
 
