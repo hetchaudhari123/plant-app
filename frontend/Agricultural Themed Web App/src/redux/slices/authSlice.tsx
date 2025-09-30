@@ -29,7 +29,10 @@ export const authSlice = createSlice({
         },
         setUser: (state, action: PayloadAction<User | null>) => {
             state.user = action.payload;
-            state.isAuthenticated = true;
+            state.isAuthenticated = action.payload !== null;
+        },
+        setIsAuthenticated: (state, action: PayloadAction<boolean>) => {
+            state.isAuthenticated = action.payload;
         },
         setError: (state, action: PayloadAction<string | null>) => {
             state.error = action.payload;
@@ -44,7 +47,7 @@ export const authSlice = createSlice({
 });
 
 // Named exports for synchronous actions
-export const { setLoading, setUser, setError, logout } = authSlice.actions;
+export const { setLoading, setUser, setError, logout, setIsAuthenticated } = authSlice.actions;
 
 // Default export for reducer
 export default authSlice.reducer;

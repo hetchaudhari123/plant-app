@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Response, Body, Depends, Request
+from fastapi import APIRouter, Response, Body, Depends, Request, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from services.auth_service import send_otp, signup_user, login_user, change_password, reset_password, reset_password_token, refresh_access_token, logout_user
+from services.auth_service import send_otp, signup_user, login_user, change_password, reset_password, reset_password_token, refresh_access_token, logout_user, generate_otp_token, resend_email_change_otp
 from dependencies.auth import require_user
 
 router = APIRouter()
@@ -27,7 +27,6 @@ class LoginSchema(BaseModel):
     password: str
 
 class ChangePasswordSchema(BaseModel):
-    user_id: str
     old_password: str
     new_password: str
     confirm_password: str
@@ -85,7 +84,7 @@ async def route_login(payload: LoginSchema, response: Response):
 @router.post("/change-password", summary="Change password for logged-in user")
 async def route_change_password(payload: ChangePasswordSchema, response: Response, user = Depends(require_user)):
     await change_password(
-        user_id=user,
+        user_id=user.id,
         old_password=payload.old_password,
         new_password=payload.new_password,
         confirm_password=payload.confirm_password,
@@ -130,3 +129,29 @@ async def route_logout(response: Response):
     """
     await logout_user(response)
     return {"message": "Logged out successfully"}
+
+class OTPTokenRequest(BaseModel):
+    email: EmailStr 
+    new_email: EmailStr
+
+@router.post("/otp-token", summary="Generate OTP token for email change")
+async def route_generate_otp_token(payload: OTPTokenRequest, user = Depends(require_user)):
+    """
+    Generate an OTP token for a given user.
+    This token can later be used to resend OTPs without requiring the password again.
+    """
+    return await generate_otp_token(user_id=user.id, email=payload.email, new_email=payload.new_email)
+
+
+
+
+
+
+@router.post("/otp-token/resend-otp", summary="Resend OTP for email change")
+async def route_resend_otp(user=Depends(require_user)):
+    """
+    Resend OTP for email change.
+    Backend finds the user's OTP token, increments resend_count, 
+    and sends a new OTP.
+    """
+    return await resend_email_change_otp(user_id=user.id)

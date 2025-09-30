@@ -2,17 +2,27 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Leaf, Menu, X, User, Upload, History, Home } from 'lucide-react';
 import { Button } from './ui/button';
+import { useSelector } from 'react-redux';
+import { RootState } from '../redux/store';
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
+  const isAuthenticated = useSelector(
+    (state: RootState) => state.auth.isAuthenticated
+  );
+
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Upload', href: '/upload', icon: Upload },
     { name: 'History', href: '/history', icon: History },
-    { name: 'Profile', href: '/profile', icon: User },
+    // Profile will be conditionally added later
   ];
+
+  if (isAuthenticated) {
+    navigation.push({ name: 'Profile', href: '/profile', icon: User });
+  }
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -48,11 +58,13 @@ export function Navbar() {
                 </Link>
               );
             })}
-            <Link to="/login">
-              <Button className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-md">
-                Sign In
-              </Button>
-            </Link>
+            {!isAuthenticated && (
+              <Link to="/login">
+                <Button className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 shadow-md">
+                  Sign In
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -88,11 +100,13 @@ export function Navbar() {
                   </Link>
                 );
               })}
-              <Link to="/login" onClick={() => setIsOpen(false)}>
-                <Button className="w-full mt-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600">
-                  Sign In
-                </Button>
-              </Link>
+              {!isAuthenticated && (
+                <Link to="/login" onClick={() => setIsOpen(false)}>
+                  <Button className="w-full mt-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600">
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         )}

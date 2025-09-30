@@ -5,8 +5,24 @@ export const API_ROUTES = {
   LOGIN: "/auth/login",
   LOGOUT: "/auth/logout",
   SIGNUP: "/auth/signup",
-  GET_PROFILE: "/auth/profile",
   UPDATE_PROFILE: "/auth/profile",
   SEND_OTP: "/auth/send-otp",
-  REFRESH_TOKEN: "/auth/refresh"
+  REFRESH_TOKEN: "/auth/refresh",
+  CREATE_OTP_TOKEN: "auth/otp-token",
+  RESEND_OTP: "/auth/otp-token/resend-otp",
+  CHANGE_PASSWORD: "/auth/change-password",
+  LOG_OUT: "/auth/logout",
+
+  // Profile
+  GET_USER: "profile/user",
+  GET_USER_DETAILS: "profile/users",
+  GET_USER_DASHBOARD_DETAILS: "profile/users/get-dashboard-details",
+  GET_USER_PRIMARY_CROPS: "profile/users/primary-crops",
+  UPDATE_USER_NAME: "profile/update-name",
+  UPDATE_USER_AVATAR: "profile/update-profile-picture",
+  GET_OTP_FOR_EMAIL_CHANGE: "profile/request-email-change",
+  VERIFY_EMAIL_UPDATE_OTP: "profile/confirm-email-change",
+  UPDATE_USER_FARM_SIZE: "profile/users/update-farm-size",
+  DELETE_USER: "profile/delete-account"
+  
 };

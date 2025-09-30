@@ -16,19 +16,25 @@ GET_OTP_FOR_EMAIL_CHANGE = "/otps/email-change"             # GET with params {"
 
 
 
-
 # ----------------------------
 # User endpoints
 # ----------------------------
 GET_USER_BY_EMAIL = "/users/email/{email}"               # GET
 CREATE_USER = "/users/"                                  # POST
-GET_USER_BY_ID = "/users/{user_id}"                     # GET
+GET_USER_DETAILS = "/users"                     # GET
+GET_USER_BY_ID = "/user/{user_id}"                     # GET
 UPDATE_USER_PASSWORD = "/users/{user_id}/password"     # PUT
 UPDATE_RESET_TOKEN = "/users/{user_id}/reset-token"    # PUT
 GET_USER_BY_RESET_TOKEN = "/users/reset-token/{token}" # GET
 UPDATE_USER_PROFILE = "/users/{user_id}/profile"       # PUT
 DELETE_USER = "/users/{user_id}"                        # DELETE
 UPDATE_USER_PROFILE_PIC = "/users/{user_id}/profile-pic" # PUT
+UPDATE_FARM_SIZE = "/users/update-farm-size" # PUT
+GET_USER_DASHBOARD_DETAILS = "/users/get-dashboard-details" # GET
+GET_PRIMARY_CROPS = "/users/primary-crops"
+CREATE_OTP_TOKEN = "/otp-token"
+ROUTE_RESEND_OTP = "/otp-token/resend-otp"
+LOGOUT= "/logout"
 
 #Model
 GET_MODEL_PREDICTION  = "/models/predict/{model_name}"  # adjust if different

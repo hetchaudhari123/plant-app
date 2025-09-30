@@ -9,3 +9,8 @@
 
   Run `npm run dev` to start the development server.
   
+
+  ## Changes to be done
+  Handle exception handling in the service function:
+  src/services/authService.tsx
+  -> Handle loading

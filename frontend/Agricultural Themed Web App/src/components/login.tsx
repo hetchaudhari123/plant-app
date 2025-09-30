@@ -10,9 +10,10 @@ import { toast } from 'sonner';
 import { apiConnector } from '../services/apiconnector';
 import { API_ROUTES } from '../config/apiRoutes';
 import { login, sendOtp } from '../services/authService';
-import { useDispatch } from "react-redux";
-import type { AppDispatch } from "../redux/store";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "../redux/store";
 import { setError, setLoading, setUser } from '../redux/slices/authSlice';
+import { FullScreenLoading } from './ui/loading';
 
 
 export function Login() {
@@ -20,6 +21,8 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const isLoading = useSelector((state: RootState) => state.auth.loading);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -31,52 +34,54 @@ export function Login() {
 
 
 
-// 
-const handleSubmit = async (e: React.FormEvent) => {
+  // 
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-        if (!isLogin) {
-            // 1️⃣ Validate signup fields
-            if (formData.password !== formData.confirmPassword) {
-                toast.error("Passwords do not match!");
-                return;
-            }
-            if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-                toast.error("Please fill in all fields");
-                return;
-            }
-
-            // 2️⃣ Call sendOtp API directly
-            await sendOtp(formData.email);
-            toast.success("OTP sent! Please verify.");
-            navigate("/confirm-otp", { state: { formData } }); // pass formData for signup
-
-        } else {
-            // 4️⃣ Handle login via authService directly
-            dispatch(setLoading(true));
-            dispatch(setError(null));
-
-            try {
-                const response = await login(formData.email, formData.password)
-
-                // Update Redux state
-                dispatch(setUser(response.user));
-                toast.success("Login successful!");
-                navigate("/"); // dashboard or home
-
-            } catch (err: any) {
-                dispatch(setError(err.response?.data?.message || "Login failed"));
-                toast.error(err.response?.data?.message || "Login failed");
-            } finally {
-                dispatch(setLoading(false));
-            }
+      if (!isLogin) {
+        dispatch(setLoading(true));
+        dispatch(setError(null));
+        // 1️⃣ Validate signup fields
+        if (formData.password !== formData.confirmPassword) {
+          toast.error("Passwords do not match!");
+          return;
         }
+        if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+          toast.error("Please fill in all fields");
+          return;
+        }
+
+        // 2️⃣ Call sendOtp API directly
+        await sendOtp(formData.email);
+        toast.success("OTP sent! Please verify.");
+        navigate("/confirm-otp", { state: { formData } }); // pass formData for signup
+
+      } else {
+        // 4️⃣ Handle login via authService directly
+        dispatch(setLoading(true));
+        dispatch(setError(null));
+
+        try {
+          const response = await login(formData.email, formData.password)
+
+          // Update Redux state
+          dispatch(setUser(response.user));
+          toast.success("Login successful!");
+          navigate("/"); // dashboard or home
+
+        } catch (err: any) {
+          dispatch(setError(err.response?.data?.message || "Login failed"));
+          toast.error(err.response?.data?.message || "Login failed");
+        } finally {
+          dispatch(setLoading(false));
+        }
+      }
     } catch (error: any) {
-        console.error("Error:", error);
-        toast.error(error?.message || "Something went wrong!");
+      console.error("Error:", error);
+      toast.error(error?.message || "Something went wrong!");
     }
-};
+  };
 
 
 
@@ -87,7 +92,9 @@ const handleSubmit = async (e: React.FormEvent) => {
       [e.target.name]: e.target.value
     });
   };
-
+  if (isLoading) {
+    return <FullScreenLoading />; // show loading spinner while fetching
+  }
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">

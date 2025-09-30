@@ -15,7 +15,7 @@ async def create_prediction_endpoint(
     Upload an image, call the model_service for prediction, 
     and save the result in db_service.
     """
-    user_id=user  # get user_id from JWT
+    user_id=user.id  # get user_id from JWT
     if not file:
         raise HTTPException(status_code=400, detail="Image file is required")
 

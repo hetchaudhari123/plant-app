@@ -7,8 +7,18 @@ from datetime import datetime, timezone
 from fastapi import UploadFile, HTTPException
 import cloudinary
 import cloudinary.uploader
-from crud_apis.predictions_api import get_prediction, create_prediction
 import db.connections as db_conn
+import httpx
+from api_routes.endpoints import GET_MODEL_PREDICTION
+
+async def get_prediction(model_name: str, file):
+    files = {"file": (file.filename, await file.read(), file.content_type)}
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            settings.BACKEND_MODEL_URL + GET_MODEL_PREDICTION.format(model_name = model_name)
+            , files=files)
+        resp.raise_for_status()
+        return resp.json()
 
 async def predict_service(model_name: str, file: UploadFile, user_id: str):
     """

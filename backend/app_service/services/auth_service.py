@@ -12,14 +12,18 @@ from utils.jinja_env import jinja_env
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import db.connections as db_conn
 
+from services.profile_service import get_user_by_id
 
-from crud_apis.users_api import get_user_by_email, create_user, get_user_by_id, update_user_password, update_reset_token, get_user_by_reset_token
 import secrets
 from fastapi.templating import Jinja2Templates
-from crud_apis.otp_api import delete_otps_for_email, get_otp_by_code, create_otp, get_otp_by_email_and_code
 from utils.auth_utils import create_access_token, create_refresh_token
 
-async def send_otp(email: str):
+async def send_otp(
+    email: str,
+    user_id: str = None,
+    email_template: str = "email_signup.html",
+    purpose: str = None
+):
     """
     Generate a unique OTP for the given email, store it in OTP collection,
     and send it via email using a Jinja2 HTML template.
@@ -28,43 +32,40 @@ async def send_otp(email: str):
     # 1) Remove any existing OTPs for this email
     await db_conn.otps_collection.delete_many({"email": email})
 
-
     # 2) Generate a secure 6-digit OTP
-    otp_code = generate_secure_otp(length=6)
-
-    # Ensure uniqueness across currently stored OTPs
     MAX_ATTEMPTS = 10
+    otp_code = None
     for _ in range(MAX_ATTEMPTS):
-        otp_code = generate_secure_otp(length=6)
-        otp_doc = await db_conn.otps_collection.find_one({"otp": otp_code})
+        candidate = generate_secure_otp(length=6)
+        otp_doc = await db_conn.otps_collection.find_one({"otp": candidate})
         if otp_doc is None:
+            otp_code = candidate
             break
     else:
         raise Exception("Failed to generate a unique OTP after 10 attempts")
 
-
     # 3) Prepare OTP document
     otp_doc = {
         "email": email,
-        "otp": otp_code
+        "otp": otp_code,
     }
+    if user_id:
+        otp_doc["user_id"] = user_id
+    if purpose:
+        otp_doc["purpose"] = purpose
 
     # 4) Insert into MongoDB
     await db_conn.otps_collection.insert_one(otp_doc)
 
-
-    template = jinja_env.get_template("email_signup.html")
-
+    # 5) Render email template
+    template = jinja_env.get_template(email_template)
     body = template.render(
         email=email,
         otp=otp_code,
         expires=settings.OTP_EXPIRE_MINUTES
     )
 
-
-
-
-    # 7) Send OTP email
+    # 6) Send OTP email
     subject = "Verify Your Email 🌱"
     await send_email(
         to_email=email,
@@ -73,6 +74,7 @@ async def send_otp(email: str):
         is_html=True
     )
 
+    return {"message": "OTP sent successfully", "email": email}
 
 
 
@@ -289,7 +291,8 @@ async def reset_password_token(email: EmailStr):
         )
     
     # 2) Generate secure random token
-    token = secrets.token_hex(20)
+    token = secrets.token_urlsafe(32)
+
 
     # 3) Compute new expiry time
     expires_at = datetime.now(timezone.utc) + timedelta(
@@ -404,17 +407,14 @@ async def refresh_access_token(request: Request, response: Response):
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid refresh token payload")
 
-        user = await get_user_by_id(user_id)
-        if not user:
+        user_doc = await db_conn.users_collection.find_one({"id": user_id})
+        if not user_doc:
             raise HTTPException(status_code=404, detail="User not found")
 
         # create new tokens
         # 7) Create new tokens for current session
-        current_token_version = user.get('token_version', 0)
+        current_token_version = user_doc.get("token_version", 0)
         now = datetime.now(timezone.utc)
-        # calculate expires timestamps
-        access_expires = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-        refresh_expires = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
 
         new_access_token = create_access_token(user_id, current_token_version)
@@ -431,7 +431,6 @@ async def refresh_access_token(request: Request, response: Response):
             secure=True,
             samesite="none",
             max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            expires=access_expires.strftime("%a, %d %b %Y %H:%M:%S GMT")  # UTC format
 
         )
         response.set_cookie(
@@ -441,7 +440,6 @@ async def refresh_access_token(request: Request, response: Response):
             secure=True,
             samesite="none",
             max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-            expires=refresh_expires.strftime("%a, %d %b %Y %H:%M:%S GMT")  # UTC format
 
         )
 
@@ -460,3 +458,89 @@ async def logout_user(response: Response):
     """
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
+
+
+
+async def generate_otp_token(user_id: str, email: EmailStr, new_email: EmailStr):
+    """
+    Generate a secure OTP token tied to a user and store it in the otp_tokens collection.
+    """
+    # 1) Verify user exists
+    user = await db_conn.users_collection.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # 2) Generate secure random token
+    token = secrets.token_urlsafe(32)
+
+    # 3) Compute expiry time for token
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.OTP_EXPIRE_MINUTES  # e.g. 10 minutes
+    )
+
+    # 4) Insert new OTP token in collection
+    otp_token_doc = {
+        "user_id": user_id,
+        "email": email,
+        "new_email": new_email,
+        "token": token,
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": expires_at,
+        "resend_count": 0
+    }
+
+    await db_conn.otp_tokens_collection.insert_one(otp_token_doc)
+
+    return {
+        "otp_token": token,
+        "expires_at": expires_at
+    }
+
+
+
+
+
+
+async def resend_email_change_otp(user_id: str):
+    """
+    Service function that:
+     Finds the latest valid otp_token for email change
+     Increments resend_count (checks limit)
+     Generates and sends a new OTP using send_otp
+    """
+    # Find latest valid otp_token
+    token_doc = await db_conn.otp_tokens_collection.find_one(
+        {"user_id": user_id, "expires_at": {"$gt": datetime.now(timezone.utc)}},
+        sort=[("created_at", -1)]
+    )
+
+    if not token_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="OTP token not found or expired. Please restart email change process."
+        )
+
+    # Increment resend_count
+    resend_count = token_doc.get("resend_count", 0) + 1
+
+    if resend_count > settings.RESEND_OTP_LIMIT:
+        # Remove token from DB
+        await db_conn.otp_tokens_collection.delete_one({"_id": token_doc["_id"]})
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Resend OTP limit exceeded. Please restart email change process."
+        )
+
+    # Update resend_count in DB
+    await db_conn.otp_tokens_collection.update_one(
+        {"_id": token_doc["_id"]},
+        {"$set": {"resend_count": resend_count}}
+    )
+
+    # Send new OTP using helper
+    await send_otp(token_doc["new_email"], user_id=user_id, email_template="email_change.html", purpose="email_change")
+
+    return {"message": "OTP resent successfully", "resend_count": resend_count}

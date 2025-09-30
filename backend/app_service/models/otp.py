@@ -20,8 +20,11 @@ class OTP(BaseModel):
     purpose: OTPPurpose = OTPPurpose.signup
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(minutes=5)  # or settings.OTP_EXPIRE_MINUTES
     )
+
+
+
     class Config:
         validate_by_name = True
         arbitrary_types_allowed = True

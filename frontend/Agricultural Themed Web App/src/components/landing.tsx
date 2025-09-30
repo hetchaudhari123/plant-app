@@ -9,7 +9,7 @@ export function Landing() {
     {
       icon: Camera,
       title: 'AI-Powered Analysis',
-      description: 'Upload crop images and get instant disease detection with 95% accuracy'
+      description: 'Upload crop images and get instant disease detection with 99% accuracy'
     },
     {
       icon: Zap,
@@ -29,10 +29,10 @@ export function Landing() {
   ];
 
   const stats = [
-    { number: '10,000+', label: 'Farmers Helped' },
-    { number: '95%', label: 'Accuracy Rate' },
-    { number: '50+', label: 'Crop Types' },
-    { number: '24/7', label: 'Support' }
+    { number: '5', label: 'AI Models' },
+    { number: '99%', label: 'Accuracy Rate' },
+    { number: '54', label: 'Crop Types' },
+    // { number: '24/7', label: 'Support' }
   ];
 
   return (
@@ -48,7 +48,7 @@ export function Landing() {
                   <span className="text-sm">Smart Agriculture</span>
                 </div>
                 <h1 className="text-4xl lg:text-6xl text-gray-900 leading-tight">
-                  Protect Your Crops with{' '}
+                  Protect Your Crops with {' '}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-green-400">
                     AI Vision
                   </span>
@@ -121,7 +121,7 @@ export function Landing() {
       {/* Stats Section */}
       <section className="py-20 bg-gradient-to-r from-green-600 to-green-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-3xl lg:text-4xl text-white mb-2">{stat.number}</div>

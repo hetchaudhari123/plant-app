@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
+    RESEND_OTP_LIMIT: int = 2
 
     MAIL_USER: str
     MAIL_PASS: str

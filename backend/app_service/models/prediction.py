@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, Any
-from typing import Optional, Dict
+from pydantic import BaseModel, Field
+from typing import Optional, Dict, Any
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 from config.config import settings
@@ -26,6 +26,7 @@ class Prediction(BaseModel):
     expires_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=settings.PREDICTION_EXPIRY_HOURS)
     )
+    crop: Optional[str] = None   # e.g. "maize", "wheat"
 
     class Config:
         json_encoders = {
