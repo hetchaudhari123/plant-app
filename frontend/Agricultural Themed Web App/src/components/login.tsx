@@ -9,7 +9,7 @@ import { Separator } from './ui/separator';
 import { toast } from 'sonner';
 import { apiConnector } from '../services/apiconnector';
 import { API_ROUTES } from '../config/apiRoutes';
-import { login, sendOtp } from '../services/authService';
+import { login, requestSignupOtp, sendOtp } from '../services/authService';
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { setError, setLoading, setUser } from '../redux/slices/authSlice';
@@ -40,8 +40,6 @@ export function Login() {
 
     try {
       if (!isLogin) {
-        dispatch(setLoading(true));
-        dispatch(setError(null));
         // 1️⃣ Validate signup fields
         if (formData.password !== formData.confirmPassword) {
           toast.error("Passwords do not match!");
@@ -52,10 +50,30 @@ export function Login() {
           return;
         }
 
-        // 2️⃣ Call sendOtp API directly
-        await sendOtp(formData.email);
-        toast.success("OTP sent! Please verify.");
-        navigate("/confirm-otp", { state: { formData } }); // pass formData for signup
+        dispatch(setLoading(true));
+        dispatch(setError(null));
+
+        // 2️⃣ Call requestSignupOtp API
+        try {
+          await requestSignupOtp({
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            password: formData.password
+          });
+
+          // Store email in localStorage for OTP page
+          localStorage.setItem('signupEmail', formData.email);
+
+          toast.success("Verification code sent to your email!");
+          navigate("/confirm-signup-otp");
+
+        } catch (err: any) {
+          dispatch(setError(err.response?.data?.detail || "Failed to send verification code"));
+          toast.error(err.response?.data?.detail || "Failed to send verification code");
+        } finally {
+          dispatch(setLoading(false));
+        }
 
       } else {
         // 4️⃣ Handle login via authService directly
@@ -63,7 +81,7 @@ export function Login() {
         dispatch(setError(null));
 
         try {
-          const response = await login(formData.email, formData.password)
+          const response = await login(formData.email, formData.password);
 
           // Update Redux state
           dispatch(setUser(response.user));
@@ -82,7 +100,6 @@ export function Login() {
       toast.error(error?.message || "Something went wrong!");
     }
   };
-
 
 
 
@@ -250,14 +267,14 @@ export function Login() {
             </form>
 
             <div className="mt-6">
-              <div className="relative">
+              {/* <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <Separator />
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white text-gray-500">Or continue with</span>
                 </div>
-              </div>
+              </div> */}
 
               {/* <div className="mt-6 grid grid-cols-2 gap-3">
                 <Button variant="outline" className="border-green-200 hover:bg-green-50">

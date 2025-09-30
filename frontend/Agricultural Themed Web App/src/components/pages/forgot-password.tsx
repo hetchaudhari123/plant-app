@@ -5,6 +5,8 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { toast } from 'sonner';
+import { requestPasswordReset } from '../../services/authService';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -13,13 +15,24 @@ export function ForgotPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      await requestPasswordReset(email);
       setIsSubmitted(true);
+      toast.success('Password reset link sent to your email');
+    } catch (error: any) {
+      console.error('Error requesting password reset:', error);
+      toast.error(error.response?.data?.detail || 'Failed to send reset link. Please try again.');
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   if (isSubmitted) {
@@ -47,7 +60,7 @@ export function ForgotPassword() {
                     We sent a password reset link to <strong>{email}</strong>
                   </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600">
                     Didn't receive the email? Check your spam folder or try again.

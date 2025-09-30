@@ -14,3 +14,5 @@
   Handle exception handling in the service function:
   src/services/authService.tsx
   -> Handle loading
+  -> Check Countdown for signup, email change
+  -> setError might not be required in slice

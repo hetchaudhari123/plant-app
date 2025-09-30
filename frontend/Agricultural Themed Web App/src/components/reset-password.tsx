@@ -20,10 +20,10 @@ export function ResetPassword() {
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
-    if (password.length < 8) errors.push('At least 8 characters');
-    if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
-    if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
-    if (!/\d/.test(password)) errors.push('One number');
+    // if (password.length < 8) errors.push('At least 8 characters');
+    // if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
+    // if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
+    // if (!/\d/.test(password)) errors.push('One number');
     return errors;
   };
 
@@ -156,7 +156,7 @@ export function ResetPassword() {
                 )}
                 
                 {/* Password strength indicator */}
-                {formData.password && (
+                {/* {formData.password && (
                   <div className="space-y-2">
                     <p className="text-sm text-gray-600">Password requirements:</p>
                     <div className="space-y-1">
@@ -179,7 +179,7 @@ export function ResetPassword() {
                       ))}
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
 
               <div className="space-y-2">

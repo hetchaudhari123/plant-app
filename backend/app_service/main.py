@@ -6,6 +6,7 @@ import config.cloudinary
 from contextlib import asynccontextmanager
 from db.connections import init_db
 from fastapi.middleware.cors import CORSMiddleware
+from config.config import settings 
 
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ app.include_router(prediction_router, prefix="/prediction", tags=["Prediction"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
 
 
 @app.get("/")

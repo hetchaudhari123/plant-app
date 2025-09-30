@@ -25,7 +25,7 @@ function AppInitializer() {
             } catch (error) {
                 dispatch(setUser(null));
                 dispatch(setIsAuthenticated(false));
-                toast.error("Failed to fetch user. Please log in again.");
+                // toast.error("Failed to fetch user. Please log in again.");
             } finally {
                 dispatch(setLoading(false));
             }

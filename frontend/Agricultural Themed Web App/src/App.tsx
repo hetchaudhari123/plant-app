@@ -3,7 +3,7 @@ import { Navbar } from './components/navbar';
 import { Footer } from './components/footer';
 import { Landing } from './components/landing';
 import { Login } from './components/login';
-import { ForgotPassword } from './components/forgot-password';
+import { ForgotPassword } from './components/pages/forgot-password';
 import { ResetPassword } from './components/reset-password';
 import { ImageUpload } from './components/image-upload';
 import { History } from './components/history';
@@ -15,6 +15,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from './redux/store';
 import { FullScreenLoading, Loading } from './components/ui/loading';
 import { ConfirmEmailChange } from './components/confirm-email-change';
+import { ConfirmOtpForSignup } from './components/confirm-otp-for-signup';
 
 export default function App() {
   const isLoading = useSelector((state: RootState) => state.auth.loading);
@@ -49,6 +50,14 @@ export default function App() {
                   <ConfirmEmailChange />
                 </PrivateRoute>
               } />
+              <Route
+                path="/confirm-signup-otp"
+                element={
+                  <OpenRoute>
+                    <ConfirmOtpForSignup />
+                  </OpenRoute>
+                }
+              />
               <Route path="/upload" element={
                 <PrivateRoute>
                   <ImageUpload />
@@ -59,6 +68,7 @@ export default function App() {
                   <History />
                 </PrivateRoute>
               } />
+              <Route path="/update-password/:token" element={<ResetPassword />} />
               <Route path="/profile" element={
                 <PrivateRoute>
                   <Profile />

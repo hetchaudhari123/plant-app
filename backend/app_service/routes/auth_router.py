@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Response, Body, Depends, Request, HTTPException, status
-from pydantic import BaseModel, EmailStr
-from services.auth_service import send_otp, signup_user, login_user, change_password, reset_password, reset_password_token, refresh_access_token, logout_user, generate_otp_token, resend_email_change_otp
+from pydantic import BaseModel, EmailStr, Field
+from services.auth_service import send_otp, signup_user, login_user, change_password, reset_password, reset_password_token, refresh_access_token, logout_user, generate_otp_token, resend_email_change_otp, request_signup_otp, resend_signup_otp
 from dependencies.auth import require_user
 
 router = APIRouter()
@@ -20,7 +20,7 @@ class SignupSchema(BaseModel):
     last_name: str
     password: str
     confirm_password: str  # ✅ add this
-    otp_input: str
+    otp_code: str
 
 class LoginSchema(BaseModel):
     email: EmailStr
@@ -32,8 +32,7 @@ class ChangePasswordSchema(BaseModel):
     confirm_password: str
 
 
-class ResetPasswordTokenSchema(BaseModel):
-    email: EmailStr
+
 
 class ResetPasswordSchema(BaseModel):
     token: str
@@ -51,18 +50,18 @@ async def send_otp_endpoint(request: OTPRequest):
     return {"message": "OTP sent successfully"}
 
 
-@router.post("/signup", summary="Signup a new user with OTP verification")
-async def route_signup(payload: SignupSchema = Body(...)):
+class VerifySignupOtpSchema(BaseModel):
+    email: EmailStr
+    otp_code: str = Field(..., min_length=6, max_length=6)
+
+@router.post("/signup/verify-otp", summary="Verify OTP and complete signup")
+async def route_verify_signup_otp(payload: VerifySignupOtpSchema):
     user = await signup_user(
         email=payload.email,
-        first_name=payload.first_name,
-        last_name=payload.last_name,
-        password=payload.password,
-        confirm_password=payload.confirm_password,  # ✅ add this
-        otp_input=payload.otp_input
+        otp_code=payload.otp_code
     )
     return {
-        "message": "User signed up successfully",
+        "message": "Account created successfully",
         "user": user
     }
 
@@ -95,7 +94,8 @@ async def route_change_password(payload: ChangePasswordSchema, response: Respons
 
 
 
-
+class ResetPasswordTokenSchema(BaseModel):
+    email: EmailStr
 
 @router.post("/reset-password-token", summary="Generate password reset token")
 async def route_reset_password_token(payload: ResetPasswordTokenSchema):
@@ -155,3 +155,35 @@ async def route_resend_otp(user=Depends(require_user)):
     and sends a new OTP.
     """
     return await resend_email_change_otp(user_id=user.id)
+
+
+class SignupRequestOtpSchema(BaseModel):
+    email: EmailStr
+    first_name: str = Field(..., min_length=1, max_length=50)
+    last_name: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=6)
+
+    
+
+
+@router.post("/signup/request-otp", summary="Request OTP for signup")
+async def route_request_signup_otp(payload: SignupRequestOtpSchema):
+    # Validate password match
+    
+    
+    result = await request_signup_otp(
+        email=payload.email,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        password=payload.password
+    )
+    return result
+
+
+class ResendSignupOtpSchema(BaseModel):
+    email: EmailStr
+
+@router.post("/signup/resend-otp", summary="Resend OTP for signup")
+async def route_resend_signup_otp(payload: ResendSignupOtpSchema):
+    result = await resend_signup_otp(email=payload.email)
+    return result

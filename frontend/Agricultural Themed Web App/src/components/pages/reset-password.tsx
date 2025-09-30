@@ -1,13 +1,16 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Lock, Eye, EyeOff, Leaf, CheckCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { resetPassword } from '../../services/authService';
+import { toast } from 'sonner';
 
 export function ResetPassword() {
   const navigate = useNavigate();
+  const { token } = useParams<{ token: string }>(); // Get token from URL params
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -20,17 +23,17 @@ export function ResetPassword() {
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
-    if (password.length < 8) errors.push('At least 8 characters');
-    if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
-    if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
-    if (!/\d/.test(password)) errors.push('One number');
+    // if (password.length < 8) errors.push('At least 8 characters');
+    // if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
+    // if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
+    // if (!/\d/.test(password)) errors.push('One number');
     return errors;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear errors when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -39,37 +42,70 @@ export function ResetPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Check if token exists
+    if (!token) {
+      toast.error('Invalid reset link. Please request a new password reset.');
+      navigate('/forgot-password');
+      return;
+    }
+
     const newErrors: { [key: string]: string } = {};
-    
+
     // Validate password
     const passwordErrors = validatePassword(formData.password);
     if (passwordErrors.length > 0) {
       newErrors.password = passwordErrors.join(', ');
     }
-    
+
     // Validate confirm password
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
+
+    try {
+      await resetPassword({
+        token: token,
+        password: formData.password,
+        confirm_password: formData.confirmPassword
+      });
+
       setIsSuccess(true);
-      setIsLoading(false);
+      toast.success('Password reset successfully!');
+
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-    }, 2000);
-  };
 
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to reset password. Please try again.';
+      toast.error(errorMessage);
+
+      // Handle specific error cases
+      if (errorMessage.includes('expired') || errorMessage.includes('Invalid reset token')) {
+        setErrors({
+          password: 'This reset link has expired or is invalid. Please request a new one.'
+        });
+        setTimeout(() => {
+          navigate('/forgot-password');
+        }, 3000);
+      } else {
+        setErrors({
+          password: errorMessage
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
   if (isSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -139,9 +175,8 @@ export function ResetPassword() {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
-                    className={`pl-10 pr-10 border-green-200 focus:border-green-500 ${
-                      errors.password ? 'border-red-300' : ''
-                    }`}
+                    className={`pl-10 pr-10 border-green-200 focus:border-green-500 ${errors.password ? 'border-red-300' : ''
+                      }`}
                   />
                   <button
                     type="button"
@@ -154,9 +189,9 @@ export function ResetPassword() {
                 {errors.password && (
                   <p className="text-sm text-red-600">{errors.password}</p>
                 )}
-                
+
                 {/* Password strength indicator */}
-                {formData.password && (
+                {/* {formData.password && (
                   <div className="space-y-2">
                     <p className="text-sm text-gray-600">Password requirements:</p>
                     <div className="space-y-1">
@@ -168,9 +203,8 @@ export function ResetPassword() {
                       ].map((item, index) => (
                         <div key={index} className="flex items-center text-sm">
                           <CheckCircle
-                            className={`h-4 w-4 mr-2 ${
-                              item.test ? 'text-green-500' : 'text-gray-300'
-                            }`}
+                            className={`h-4 w-4 mr-2 ${item.test ? 'text-green-500' : 'text-gray-300'
+                              }`}
                           />
                           <span className={item.test ? 'text-green-600' : 'text-gray-500'}>
                             {item.rule}
@@ -179,7 +213,7 @@ export function ResetPassword() {
                       ))}
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
 
               <div className="space-y-2">
@@ -194,9 +228,8 @@ export function ResetPassword() {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     required
-                    className={`pl-10 pr-10 border-green-200 focus:border-green-500 ${
-                      errors.confirmPassword ? 'border-red-300' : ''
-                    }`}
+                    className={`pl-10 pr-10 border-green-200 focus:border-green-500 ${errors.confirmPassword ? 'border-red-300' : ''
+                      }`}
                   />
                   <button
                     type="button"

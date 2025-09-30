@@ -29,7 +29,7 @@ export function ConfirmOtpForSignup() {
     } else {
       // If no pending signup found, redirect back to signup
       toast.error('No pending signup found');
-      navigate('/signup');
+      navigate('/login');
       return;
     }
   }, [navigate]);
@@ -127,18 +127,18 @@ export function ConfirmOtpForSignup() {
       toast.success(res.message || 'Verification code resent successfully');
 
       // Reset countdown
-      setCountdown(60);
+      setCountdown(1);
       setCanResend(false);
     } catch (error: any) {
       // Handle specific backend errors
       if (error.message.includes("Resend limit reached")) {
         toast.error("Resend limit reached. Please restart the signup process.");
         localStorage.removeItem('signupEmail');
-        navigate("/signup");
+        navigate("/login");
       } else if (error.message.includes("OTP token not found")) {
         toast.error("OTP token not found or expired. Redirecting to signup...");
         localStorage.removeItem('signupEmail');
-        navigate("/signup");
+        navigate("/login");
       } else {
         console.error("Error resending OTP:", error);
         toast.error("Failed to resend OTP. Please try again later.");
@@ -151,7 +151,7 @@ export function ConfirmOtpForSignup() {
   const handleCancelSignup = () => {
     // Clear localStorage when canceling
     localStorage.removeItem('signupEmail');
-    navigate('/signup');
+    navigate('/login');
   };
 
   const formatTime = (seconds: number) => {

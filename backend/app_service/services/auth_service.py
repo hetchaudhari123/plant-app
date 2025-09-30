@@ -4,7 +4,7 @@ from fastapi import HTTPException, Response, status, Request
 from datetime import datetime, timedelta, timezone, timedelta
 from jose import jwt, JWTError, ExpiredSignatureError
 from config.config import settings
-from pydantic import EmailStr
+from pydantic import EmailStr, Field, BaseModel
 
 from utils.otp_utils import generate_secure_otp
 from utils.email_utils import send_email
@@ -46,9 +46,11 @@ async def send_otp(
 
     # 3) Prepare OTP document
     otp_doc = {
-        "email": email,
-        "otp": otp_code,
-    }
+            "email": email,
+            "otp": otp_code,
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
+        }
     if user_id:
         otp_doc["user_id"] = user_id
     if purpose:
@@ -77,90 +79,6 @@ async def send_otp(
     return {"message": "OTP sent successfully", "email": email}
 
 
-
-async def signup_user(email: EmailStr, first_name: str, last_name: str, password: str, confirm_password: str, otp_input: str):
-
-    # 0) Validate password confirmation
-    if password != confirm_password:
-        raise HTTPException(
-            status_code=400,
-            detail="Password and confirm password do not match"
-        )
-    
-
-    existing = await db_conn.users_collection.find_one({"email": email})
-    if existing:
-        raise ValueError("User with this email already exists")
-
-    # Fetch OTP from DB for this email
-    otp_entry = await db_conn.otps_collection.find_one({"email": email, "otp": otp_input})
-
-    if not otp_entry:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
-
-
-
-    # Hash the password
-    password_hash = hash_password(password)
-
-    # Build display_name
-    display_name = f"{first_name} {last_name}"
-
-    # Generate profile picture URL (DiceBear initials avatar)
-    profile_pic_url = f"https://api.dicebear.com/5.x/initials/svg?seed={first_name}%20{last_name}"
-
-
-
-    user_doc = {
-        "id": str(uuid4()),
-        "email": email,
-        "first_name": first_name,
-        "last_name": last_name,
-        "password_hash": password_hash,
-        "created_at": datetime.now(timezone.utc).isoformat(),  # serialize datetime
-        "profile_pic_url": profile_pic_url,
-        "last_login": None
-    }
-
-
-
-    await db_conn.users_collection.insert_one(user_doc)
-
-
-    # Remove password before returning
-    user_doc.pop("password_hash")
-
-    # 10) Delete OTP after successful signup
-    await db_conn.otps_collection.delete_many({"email": email})
-    
-
-        
-    env = Environment(
-        loader=FileSystemLoader("templates"),
-        autoescape=select_autoescape(["html", "xml"])
-    )
-    template = env.get_template("email_welcome.html")
-
-    # Send welcome email WITH OTP
-    html_content = template.render(
-        display_name=display_name
-    )
-
-    # Send the email
-    await send_email(
-        to_email=email,
-        subject="Welcome to Plant App 🌱",
-        body=html_content,
-        is_html=True
-    )
-
-    return {
-        "id": user_doc["id"],
-        "email": user_doc["email"],
-        "first_name": first_name,
-        "last_name": last_name,
-        "profile_pic_url": profile_pic_url
-    }
 
 
 
@@ -311,6 +229,8 @@ async def reset_password_token(email: EmailStr):
         }
     )    
 
+
+    
 
     # 5) Construct reset URL
     reset_url = f"{settings.FRONTEND_URL}/update-password/{token}"
@@ -544,3 +464,227 @@ async def resend_email_change_otp(user_id: str):
     await send_otp(token_doc["new_email"], user_id=user_id, email_template="email_change.html", purpose="email_change")
 
     return {"message": "OTP resent successfully", "resend_count": resend_count}
+
+
+
+async def request_signup_otp(
+    email: EmailStr,
+    first_name: str,
+    last_name: str,
+    password: str
+):
+    """
+    Store temporary signup data and send OTP to user's email
+    """
+    # 1) Check if user already exists
+    existing_user = await db_conn.users_collection.find_one({"email": email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+
+    # 2) Check if there's already a pending signup OTP token
+    existing_otp_token = await db_conn.otp_tokens_collection.find_one({
+        "email": email,
+        "otp_type": "signup"
+    })
+    
+    if existing_otp_token:
+        # Check if resend limit exceeded
+        if existing_otp_token.get("resend_count", 0) >= settings.RESEND_OTP_LIMIT:
+            raise HTTPException(
+                status_code=429, 
+                detail="Resend OTP limit exceeded. Please restart sign up process."
+            )
+        
+        # Delete old OTP token to create a new one
+        await db_conn.otp_tokens_collection.delete_one({"_id": existing_otp_token["_id"]})
+
+    # 3) Hash the password
+    password_hash = hash_password(password)
+
+    # 4) Generate temporary token for tracking
+    temp_token = secrets.token_urlsafe(32)
+
+    # 5) Create OTP token document (stores temporary signup data)
+    otp_token = {
+            "user_id": f"{secrets.token_urlsafe(16)}",
+            "email": email,
+            "new_email": None,
+            "token": temp_token,
+            "otp_type": "signup",
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_TOKEN_EXPIRE_MINUTES),
+            "resend_count": 0,
+            "pending_data": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "password_hash": password_hash
+            }
+    }
+
+    # 6) Store in otp_tokens_collection (temporary signup data)
+    await db_conn.otp_tokens_collection.insert_one(otp_token)
+
+    # 7) Send OTP using your existing send_otp function
+    try:
+        await send_otp(
+            email=email,
+            user_id=otp_token["user_id"],
+            email_template="email_signup.html",
+            purpose="signup"
+        )
+    except Exception as e:
+        # Rollback: delete the OTP token if email fails
+        await db_conn.otp_tokens_collection.delete_one({"email": email, "otp_type": "signup"})
+        raise HTTPException(status_code=500, detail="Failed to send verification email")
+
+    return {
+        "message": "Verification code sent to your email",
+        "email": email
+    }
+
+
+
+async def signup_user(email: EmailStr, otp_code: str):
+    """
+    Verify OTP and create user from temporary signup data stored in otp_tokens collection
+    """
+    
+    # 1) Fetch OTP from otps collection
+    otp_entry = await db_conn.otps_collection.find_one({"email": email, "otp": otp_code})
+    if not otp_entry:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    # 2) Fetch temporary signup data from otp_tokens collection
+    otp_token = await db_conn.otp_tokens_collection.find_one({
+        "email": email,
+        "otp_type": "signup"
+    })
+    
+    if not otp_token:
+        raise HTTPException(status_code=400, detail="Signup session not found or expired")
+    
+    # 3) Check if OTP token has expired
+    # Make expires_at timezone-aware if it's naive
+    expires_at = otp_token["expires_at"]
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
+    if expires_at < datetime.now(timezone.utc):
+        # Clean up expired token
+        await db_conn.otp_tokens_collection.delete_one({"_id": otp_token["_id"]})
+        raise HTTPException(status_code=400, detail="OTP has expired. Please restart signup process")
+
+    # 4) Check if user already exists
+    existing = await db_conn.users_collection.find_one({"email": email})
+    if existing:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+
+    # 5) Extract pending data
+    pending_data = otp_token.get("pending_data")
+    if not pending_data:
+        raise HTTPException(status_code=400, detail="Signup data not found")
+    
+    first_name = pending_data.get("first_name")
+    last_name = pending_data.get("last_name")
+    password_hash = pending_data.get("password_hash")
+    profile_pic_url = f"https://api.dicebear.com/5.x/initials/svg?seed={first_name}%20{last_name}"
+
+    # 6) Build display_name
+    display_name = f"{first_name} {last_name}"
+
+    # 7) Create user document
+    user_doc = {
+        "id": str(uuid4()),
+        "email": email,
+        "first_name": first_name,
+        "last_name": last_name,
+        "password_hash": password_hash,
+        "profile_pic_url": profile_pic_url
+    }
+
+    # 8) Insert user into database
+    await db_conn.users_collection.insert_one(user_doc)
+
+    # 9) Clean up: Delete OTP and OTP token after successful signup
+    await db_conn.otps_collection.delete_many({"email": email})
+    await db_conn.otp_tokens_collection.delete_one({"_id": otp_token["_id"]})
+
+    # 10) Send welcome email
+    env = Environment(
+        loader=FileSystemLoader("templates"),
+        autoescape=select_autoescape(["html", "xml"])
+    )
+    template = env.get_template("email_welcome.html")
+
+    html_content = template.render(
+        display_name=display_name
+    )
+
+    await send_email(
+        to_email=email,
+        subject="Welcome to Plant App 🌱",
+        body=html_content,
+        is_html=True
+    )
+
+    # 11) Return user data (without password_hash)
+    return {
+        "id": user_doc["id"],
+        "email": user_doc["email"],
+        "first_name": first_name,
+        "last_name": last_name,
+        "profile_pic_url": profile_pic_url
+    }
+
+
+
+async def resend_signup_otp(email: EmailStr):
+    """
+    Resend OTP for signup and increment resend count
+    """
+    # 1) Find existing OTP token
+    otp_token = await db_conn.otp_tokens_collection.find_one({
+        "email": email,
+        "otp_type": "signup"
+    })
+    
+    if not otp_token:
+        raise HTTPException(status_code=404, detail="OTP token not found or expired")
+    
+    # 2) Check if expired
+    expires_at = otp_token["expires_at"]
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
+    if expires_at < datetime.now(timezone.utc):
+        await db_conn.otp_tokens_collection.delete_one({"_id": otp_token["_id"]})
+        raise HTTPException(status_code=400, detail="OTP has expired. Please restart signup process")
+    
+    # 3) Check resend limit
+    if otp_token.get("resend_count", 0) >= settings.RESEND_OTP_LIMIT:
+        # Delete the token since they've exhausted attempts
+        await db_conn.otp_tokens_collection.delete_one({"_id": otp_token["_id"]})
+        await db_conn.otps_collection.delete_many({"email": email})
+        raise HTTPException(status_code=429, detail="Resend limit reached. Please restart signup process")
+    # 4) Increment resend count
+    new_resend_count = otp_token.get("resend_count", 0) + 1
+    await db_conn.otp_tokens_collection.update_one(
+        {"_id": otp_token["_id"]},
+        {"$set": {"resend_count": new_resend_count}}
+    )
+    
+    # 5) Send new OTP (this will delete old OTP and create new one in otps collection)
+    try:
+        await send_otp(
+            email=email,
+            user_id=otp_token["user_id"],
+            email_template="email_signup.html",
+            purpose="signup"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to resend verification email")
+    
+    return {
+        "message": "Verification code resent successfully",
+        "resend_count": new_resend_count
+    }

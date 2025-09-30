@@ -4,7 +4,7 @@ export const API_ROUTES = {
   // User-related APIs
   LOGIN: "/auth/login",
   LOGOUT: "/auth/logout",
-  SIGNUP: "/auth/signup",
+  REQUEST_SIGNUP_OTP: "/auth/signup/request-otp",
   UPDATE_PROFILE: "/auth/profile",
   SEND_OTP: "/auth/send-otp",
   REFRESH_TOKEN: "/auth/refresh",
@@ -12,6 +12,11 @@ export const API_ROUTES = {
   RESEND_OTP: "/auth/otp-token/resend-otp",
   CHANGE_PASSWORD: "/auth/change-password",
   LOG_OUT: "/auth/logout",
+  VERIFY_SIGNUP_OTP: "/auth/signup/verify-otp",
+  RESEND_SIGNUP_OTP: "/auth/signup/resend-otp",
+  REQUEST_PASSWORD_RESET: "/auth/reset-password-token",
+  RESET_PASSWORD: "/auth/reset-password",
+
 
   // Profile
   GET_USER: "profile/user",

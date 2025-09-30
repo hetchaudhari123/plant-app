@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     BACKEND_MODEL_URL: str
 
     FRONTEND_URL: str
+    OTP_TOKEN_EXPIRE_MINUTES: int
     class Config:
         env_file = ".env"
 
