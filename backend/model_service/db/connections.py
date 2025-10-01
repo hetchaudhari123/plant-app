@@ -18,6 +18,7 @@ async def init_db(retries = 5, delay = 2):
 
             models_collection = db["models"]
             # print("✅ MongoDB connected successfully")
+            
             return
 
         except Exception as e:
@@ -25,3 +26,6 @@ async def init_db(retries = 5, delay = 2):
             await asyncio.sleep(delay)
 
     raise Exception("❌ Failed to connect to MongoDB after several retries")
+
+
+

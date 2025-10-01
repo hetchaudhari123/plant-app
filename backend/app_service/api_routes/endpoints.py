@@ -37,7 +37,7 @@ ROUTE_RESEND_OTP = "/otp-token/resend-otp"
 LOGOUT= "/logout"
 
 #Model
-GET_MODEL_PREDICTION  = "/models/predict/{model_name}"  # adjust if different
+GET_MODEL_PREDICTION  = "/model/predict/{model_name}"  # adjust if different
 
 # Prediction-related
 CREATE_PREDICTION = "/predictions/create-prediction"  # POST

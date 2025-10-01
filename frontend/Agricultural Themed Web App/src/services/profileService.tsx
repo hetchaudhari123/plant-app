@@ -1,5 +1,6 @@
 import { apiConnector } from "./apiconnector";
 import { API_ROUTES } from "../config/apiRoutes";
+
 export const getUserById = async (userId: string) => {
   try {
     const response = await apiConnector("GET", `${API_ROUTES.GET_USER}/${userId}`);

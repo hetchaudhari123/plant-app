@@ -1,5 +1,5 @@
 # dependencies.py
-from models.initializer import setup_models
+from manager.initializer import setup_models
 
 # Initialize once at import
 manager, IDX2LABEL = setup_models(idx2label_path="saved_models/utils/idx2label.json")

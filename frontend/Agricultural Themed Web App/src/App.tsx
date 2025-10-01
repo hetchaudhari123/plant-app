@@ -5,7 +5,7 @@ import { Landing } from './components/landing';
 import { Login } from './components/login';
 import { ForgotPassword } from './components/pages/forgot-password';
 import { ResetPassword } from './components/reset-password';
-import { ImageUpload } from './components/image-upload';
+import { ImageUpload } from './components/pages/image-upload';
 import { History } from './components/history';
 import { Profile } from './components/pages/profile';
 import OpenRoute from './components/OpenRoute';

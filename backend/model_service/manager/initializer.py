@@ -1,7 +1,7 @@
 import json
 import torch
-from models.plant_model import PlantModel
-from models.manager import ModelManager
+from manager.plant_model import PlantModel
+from manager.manager import ModelManager
 from config.config import settings
 from saved_models.model_paths.model_paths import RESNET50_PATH, DENSENET121_PATH, EFFICIENTNET_B4_PATH, ENSEMBLE_PATH, MOBILENET_V3_PATH
 

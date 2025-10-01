@@ -18,15 +18,14 @@ class Prediction(BaseModel):
     user_id: str        # reference to User.id
     image_url: str
     status: PredictionStatus  # restricted to enum values
-    prediction: Optional[str] = None
-    confidence: Optional[float] = None
+    crop: Optional[str] = None   # e.g. "maize", "wheat"
+    disease: Optional[str] = None   # e.g. "apple scab"
     raw_output: Optional[Any] = None 
     processing_time: Optional[float] = None  # in seconds
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     expires_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc) + timedelta(hours=settings.PREDICTION_EXPIRY_HOURS)
     )
-    crop: Optional[str] = None   # e.g. "maize", "wheat"
 
     class Config:
         json_encoders = {

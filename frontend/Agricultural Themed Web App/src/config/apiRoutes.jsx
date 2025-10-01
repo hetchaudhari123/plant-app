@@ -28,6 +28,12 @@ export const API_ROUTES = {
   GET_OTP_FOR_EMAIL_CHANGE: "profile/request-email-change",
   VERIFY_EMAIL_UPDATE_OTP: "profile/confirm-email-change",
   UPDATE_USER_FARM_SIZE: "profile/users/update-farm-size",
-  DELETE_USER: "profile/delete-account"
-  
+  DELETE_USER: "profile/delete-account",
+
+  // MODEL
+
+  GET_ALL_MODELS: "model/models",
+
+  // PREDICTION
+  CREATE_PREDICTION: "prediction"
 };
