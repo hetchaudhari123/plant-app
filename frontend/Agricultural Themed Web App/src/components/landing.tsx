@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Upload, Zap, Shield, BarChart3, ArrowRight, Camera, Leaf, Users } from 'lucide-react';
+import { Upload, Zap, Shield, BarChart3, ArrowRight, Camera, Leaf, Users, Image } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -7,7 +7,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 export function Landing() {
   const features = [
     {
-      icon: Camera,
+      icon: Image,
       title: 'AI-Powered Analysis',
       description: 'Upload crop images and get instant disease detection with 99% accuracy'
     },
@@ -21,17 +21,17 @@ export function Landing() {
       title: 'Preventive Care',
       description: 'Early detection helps prevent crop loss and increases yield'
     },
-    {
-      icon: BarChart3,
-      title: 'Detailed Reports',
-      description: 'Comprehensive analysis with treatment recommendations'
-    }
+    // {
+    //   icon: BarChart3,
+    //   title: 'Detailed Reports',
+    //   description: 'Comprehensive analysis with treatment recommendations'
+    // }
   ];
 
   const stats = [
     { number: '5', label: 'AI Models' },
     { number: '99%', label: 'Accuracy Rate' },
-    { number: '54', label: 'Crop Types' },
+    { number: '54', label: 'Crop Diseases Detected' },
     // { number: '24/7', label: 'Support' }
   ];
 
@@ -54,8 +54,7 @@ export function Landing() {
                   </span>
                 </h1>
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Upload images of your crops and get instant disease detection, treatment recommendations, 
-                  and expert insights to maximize your harvest.
+                  Upload images of your crops and get instant disease detection.
                 </p>
               </div>
               
@@ -99,7 +98,7 @@ export function Landing() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
@@ -151,7 +150,7 @@ export function Landing() {
               </div>
               <h3 className="text-xl text-gray-900 mb-2">Upload Image</h3>
               <p className="text-gray-600">
-                Take or upload a photo of your crop using our mobile-friendly interface
+                Upload a photo of your crop
               </p>
             </div>
             
@@ -171,7 +170,7 @@ export function Landing() {
               </div>
               <h3 className="text-xl text-gray-900 mb-2">Get Results</h3>
               <p className="text-gray-600">
-                Receive detailed analysis with treatment recommendations and action plans
+                Get instant plant disease predictions from your images
               </p>
             </div>
           </div>
@@ -184,7 +183,7 @@ export function Landing() {
           <div className="max-w-3xl mx-auto">
             <Users className="h-16 w-16 text-green-600 mx-auto mb-6" />
             <h2 className="text-3xl lg:text-4xl text-gray-900 mb-4">
-              Join Thousands of Smart Farmers
+              Know Your Plant’s Health Instantly
             </h2>
             <p className="text-xl text-gray-600 mb-8">
               Start protecting your crops today with AI-powered agricultural insights.

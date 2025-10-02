@@ -13,7 +13,7 @@ import { login, requestSignupOtp, sendOtp } from '../services/authService';
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../redux/store";
 import { setError, setLoading, setUser } from '../redux/slices/authSlice';
-import { FullScreenLoading } from './ui/loading';
+import { Loading } from './ui/loading';
 
 
 export function Login() {
@@ -110,7 +110,11 @@ export function Login() {
     });
   };
   if (isLoading) {
-    return <FullScreenLoading />; // show loading spinner while fetching
+    return (
+    <div className='border-2 border-black min-h-screen flex items-center justify-center'>
+      <Loading />
+    </div> // show loading spinner while fetching
+    )
   }
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

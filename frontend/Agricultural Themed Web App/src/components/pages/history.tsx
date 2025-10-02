@@ -225,7 +225,7 @@ export function History() {
       </Card>
 
       {/* Results Summary */}
-      {filteredData.length > 0 && (
+      {/* {filteredData.length > 0 && (
         <div className="flex items-center justify-between text-sm text-gray-600">
           <span>Showing {filteredData.length} of {historyData.length} results</span>
           <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ export function History() {
             <span>Filters applied</span>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* History Grid */}
       {filteredData.length === 0 ? (

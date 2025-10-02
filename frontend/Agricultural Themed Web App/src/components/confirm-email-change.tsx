@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, ArrowLeft, Shield, Check } from 'lucide-react';
+import { Mail, ArrowLeft, Shield, Check, Loader } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
 import { requestEmailUpdateOtp, resendEmailChangeOtp, verifyEmailUpdateOtp } from '../services/profileService';
-import { FullScreenLoading } from './ui/loading';
+import { Loading } from './ui/loading';
 
 export function ConfirmEmailChange() {
   const navigate = useNavigate();
@@ -21,7 +21,6 @@ export function ConfirmEmailChange() {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
   useEffect(() => {
     // Get email data from localStorage
     const storedNewEmail = localStorage.getItem('pendingNewEmail');
@@ -174,9 +173,6 @@ export function ConfirmEmailChange() {
   if (!newEmail) {
     return null;
   }
-  if (isLoading) {
-    return <FullScreenLoading />; // show loading spinner while fetching
-  }
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -223,6 +219,7 @@ export function ConfirmEmailChange() {
                       onKeyDown={(e) => handleKeyDown(index, e)}
                       onPaste={index === 0 ? handlePaste : undefined}
                       className="w-12 h-12 text-center border-green-200 focus:border-green-500"
+                      disabled={isVerifying || isLoading}
                     />
                   ))}
                 </div>
@@ -239,9 +236,10 @@ export function ConfirmEmailChange() {
                 ) : (
                   <button
                     onClick={handleResendOtp}
-                    className="text-sm text-green-600 hover:text-green-500"
+                    disabled={isLoading}
+                    className="text-sm text-green-600 hover:text-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Didn't receive the code? Resend
+                    {isLoading ? 'Sending...' : "Didn't receive the code? Resend"}
                   </button>
                 )}
               </div>
@@ -251,13 +249,14 @@ export function ConfirmEmailChange() {
                   variant="outline"
                   onClick={handleCancelEmailChange}
                   className="flex-1"
+                  disabled={isVerifying || isLoading}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
                 <Button
                   onClick={handleVerifyOtp}
-                  disabled={otp.join('').length !== 6 || isVerifying}
+                  disabled={otp.join('').length !== 6 || isVerifying || isLoading}
                   className="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
                 >
                   {isVerifying ? (
@@ -277,14 +276,7 @@ export function ConfirmEmailChange() {
           </CardContent>
         </Card>
 
-        {/* <div className="text-center">
-          <button
-            onClick={handleCancelEmailChange}
-            className="text-sm text-green-600 hover:text-green-500"
-          >
-            Cancel email change
-          </button>
-        </div> */}
+
       </div>
     </div>
   );

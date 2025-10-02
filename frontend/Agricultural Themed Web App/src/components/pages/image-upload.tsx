@@ -387,7 +387,7 @@ export function ImageUpload() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Processing...</span>
-                    <span>{uploadProgress}%</span>
+                    {/* <span>{uploadProgress}%</span> */}
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
                 </div>

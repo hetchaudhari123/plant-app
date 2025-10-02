@@ -4,7 +4,7 @@ import { Footer } from './components/footer';
 import { Landing } from './components/landing';
 import { Login } from './components/login';
 import { ForgotPassword } from './components/pages/forgot-password';
-import { ResetPassword } from './components/reset-password';
+import { ResetPassword } from './components/pages/reset-password';
 import { ImageUpload } from './components/pages/image-upload';
 import { History } from './components/pages/history';
 import { Profile } from './components/pages/profile';
@@ -13,7 +13,7 @@ import PrivateRoute from './components/PrivateRoute';
 import AppInitializer from './AppInitializer';
 import { useSelector } from 'react-redux';
 import { RootState } from './redux/store';
-import { FullScreenLoading, Loading } from './components/ui/loading';
+import { Loading } from './components/ui/loading';
 import { ConfirmEmailChange } from './components/confirm-email-change';
 import { ConfirmOtpForSignup } from './components/confirm-otp-for-signup';
 
@@ -79,11 +79,7 @@ export default function App() {
           <Footer />
         </div>
       </Router>
-      {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-          <FullScreenLoading />
-        </div>
-      )}
+      
     </>
 
   );

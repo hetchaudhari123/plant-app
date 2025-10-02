@@ -67,17 +67,31 @@ async def route_verify_signup_otp(payload: VerifySignupOtpSchema):
 
 @router.post("/login", summary="Login user and return access token")
 async def route_login(payload: LoginSchema, response: Response):
-    user = await login_user(email=payload.email, password=payload.password, response=response)
-    return {
-        "message": "Login successful",
-        "user": {
-            "id": str(user["id"]),
-            "email": user["email"],
-            "first_name": user.get("first_name"),
-            "last_name": user.get("last_name"),
-            "profile_pic_url": user.get("profile_pic_url")
+    try:
+        user = await login_user(email=payload.email, password=payload.password, response=response)
+        return {
+            "message": "Login successful",
+            "user": {
+                "id": str(user["id"]),
+                "email": user["email"],
+                "first_name": user.get("first_name"),
+                "last_name": user.get("last_name"),
+                "profile_pic_url": user.get("profile_pic_url")
+            }
         }
-    }
+
+    except ValueError as ve:
+        # Example: invalid credentials
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(ve)
+        )
+    except Exception as e:
+        # Unexpected server errors
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred. Please try again later."
+        )
 
 
 @router.post("/change-password", summary="Change password for logged-in user")

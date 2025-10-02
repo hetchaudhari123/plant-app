@@ -64,7 +64,7 @@ async def send_otp(
     body = template.render(
         email=email,
         otp=otp_code,
-        expires=settings.OTP_EXPIRE_MINUTES
+        expiry_minutes=settings.OTP_EXPIRE_MINUTES
     )
 
     # 6) Send OTP email
@@ -285,6 +285,7 @@ async def reset_password(token: str, password: str, confirm_password: str):
     if not expires_at or expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset token expired")
 
+    
     # 4) Hash the new password
     hashed_password = hash_password(password)
 

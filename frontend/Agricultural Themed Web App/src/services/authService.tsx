@@ -202,7 +202,6 @@ export const resetPassword = async (data: ResetPasswordRequest) => {
       password: data.password,
       confirm_password: data.confirm_password
     };
-
     const response = await apiConnector(
       "POST",
       `${API_ROUTES.RESET_PASSWORD}`,

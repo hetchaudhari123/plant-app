@@ -3,20 +3,13 @@ import { User, Settings, Bell, Shield, Camera, Edit3, Save, X, Mail, Phone, MapP
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Switch } from '../ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Separator } from '../ui/separator';
 import { Badge } from '../ui/badge';
 import { createOtpToken, deleteUser, getUserDashboardMetrics, getUserDetails, getUserPrimaryCrops, requestEmailUpdateOtp, updateFarmSize, updateUserAvatar, updateUserName } from '../../services/profileService';
-import { FullScreenLoading } from '../ui/loading';
 import { toast } from "sonner";
-import { DialogContent, DialogHeader, DialogTitle, Dialog, DialogTrigger } from '../ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { DialogDescription } from '@radix-ui/react-dialog';
-import { ConfirmationModal } from '../Confirmation-modal';
 import { changePassword, logoutUser } from '../../services/authService';
 
 export interface UserProfile {
@@ -113,7 +106,7 @@ export function Profile() {
     }
 
     try {
-      const response = await changePassword({
+      await changePassword({
         old_password: currentPassword,
         new_password: newPassword,
         confirm_password: confirmPassword
@@ -149,43 +142,43 @@ export function Profile() {
     }
   };
 
+  const fetchProfile = async () => {
+    try {
+      const userData = await getUserDetails(); // API call
+      const cropsData = await getUserPrimaryCrops(); // returns string[] of crop names
+
+      setProfile({
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        email: userData.email,
+        farmSize: userData.farm_size as FarmSize, // cast to enum type
+        cropTypes: cropsData || [],
+        avatar: userData.profile_pic_url || ''
+      });
+      setEditedProfile({
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        email: userData.email,
+        farmSize: userData.farm_size as FarmSize, // cast to enum type
+        cropTypes: cropsData || [],
+        avatar: userData.profile_pic_url || ''
+      }); // initialize editedProfile here, after data is fetched
+
+      const metricsData = await getUserDashboardMetrics(); // new API
+      console.log("METRICS IS....", metricsData)
+      setMetrics({
+        totalAnalyses: metricsData.total_analyses,
+        issuesDetected: metricsData.issues_detected,
+        cropsMonitored: metricsData.crops_monitored,
+        healthyCrops: metricsData.healthy_crops,
+      });
+    } catch (error) {
+      console.error("Failed to fetch profile:", error);
+    } finally {
+      setIsLoading(false); // done loading
+    }
+  };
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const userData = await getUserDetails(); // API call
-        const cropsData = await getUserPrimaryCrops(); // returns string[] of crop names
-
-        setProfile({
-          firstName: userData.first_name,
-          lastName: userData.last_name,
-          email: userData.email,
-          farmSize: userData.farm_size as FarmSize, // cast to enum type
-          cropTypes: cropsData || [],
-          avatar: userData.profile_pic_url || ''
-        });
-        setEditedProfile({
-          firstName: userData.first_name,
-          lastName: userData.last_name,
-          email: userData.email,
-          farmSize: userData.farm_size as FarmSize, // cast to enum type
-          cropTypes: cropsData || [],
-          avatar: userData.profile_pic_url || ''
-        }); // initialize editedProfile here, after data is fetched
-
-        const metricsData = await getUserDashboardMetrics(); // new API
-        console.log("METRICS IS....", metricsData)
-        setMetrics({
-          totalAnalyses: metricsData.total_analyses,
-          issuesDetected: metricsData.issues_detected,
-          cropsMonitored: metricsData.crops_monitored,
-          healthyCrops: metricsData.healthy_crops,
-        });
-      } catch (error) {
-        console.error("Failed to fetch profile:", error);
-      } finally {
-        setIsLoading(false); // done loading
-      }
-    };
 
     fetchProfile();
   }, []); // empty dependency array → runs once on mount
@@ -193,12 +186,7 @@ export function Profile() {
 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [notifications, setNotifications] = useState({
-    emailAlerts: true,
-    pushNotifications: true,
-    weeklyReports: false,
-    marketingEmails: false
-  });
+
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     setEditedProfile(prev => ({ ...prev, [field]: value }));
@@ -218,6 +206,7 @@ export function Profile() {
 
 
   const handleSave = async () => {
+    setIsLoading(true); // Start loading
     try {
       // --- Name update ---
       if (editedProfile.firstName !== profile.firstName || editedProfile.lastName !== profile.lastName) {
@@ -226,7 +215,6 @@ export function Profile() {
           lastName: editedProfile.lastName
         });
       }
-
 
       // --- Avatar upload ---
       if (avatarFile) {
@@ -240,13 +228,17 @@ export function Profile() {
         await updateFarmSize(editedProfile.farmSize);
       }
 
-      // --- Update local state ---
-      setProfile(editedProfile);
+      // --- Refresh profile data from server ---
+      await fetchProfile();
+
+      // --- Update UI state after successful save ---
       setIsEditing(false);
+      toast.success("Profile updated successfully!");
 
     } catch (error) {
       console.error("Failed to save profile:", error);
       toast.error("Failed to save changes. Please try again.");
+      setIsLoading(false); // Set loading false on error since fetchProfile won't run
     }
   };
 
@@ -302,16 +294,29 @@ export function Profile() {
       setIsLoading(false);
     }
   };
-  const [open, setOpen] = useState(false);
-  const handlePasswordChangeConfirm = () => {
-    // 🚀 Call your password change API here
-    console.log("Password change confirmed!")
-    // Example: await changePassword(newPassword)
-  }
 
-  if (isLoading) {
-    return <FullScreenLoading />; // show loading spinner while fetching
-  }
+  const handleSignOut = async () => {
+
+    try {
+
+      // Call backend logout
+      await logoutUser();
+
+      // Clear local storage
+      localStorage.clear();
+
+      // Optionally, clear any user state if using context or Redux
+      // setUser(null);
+
+      // Navigate to login page
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Optionally show a toast or alert
+    }
+  };
+
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -319,30 +324,53 @@ export function Profile() {
           <h1 className="text-3xl text-gray-900">Profile</h1>
           <p className="text-gray-600">Manage your account settings and preferences</p>
         </div>
-        {!isEditing ? (
-          <Button
-            onClick={() => setIsEditing(true)}
-            className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
-          >
-            <Edit3 className="h-4 w-4 mr-2" />
-            Edit Profile
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleCancel}>
-              <X className="h-4 w-4 mr-2" />
-              Cancel
-            </Button>
+
+        <div className="flex gap-2 items-center">
+          {!isEditing ? (
             <Button
-              onClick={handleSave}
+              onClick={() => setIsEditing(true)}
               className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
             >
-              <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              <Edit3 className="h-4 w-4 mr-2" />
+              Edit Profile
             </Button>
-          </div>
-        )}
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleCancel}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Sign Out Button */}
+          <Button
+            variant="outline"
+            onClick={handleSignOut}
+            className="ml-2 text-red-600 border-red-600 hover:bg-red-50"
+          >
+            Sign Out
+          </Button>
+        </div>
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}
@@ -350,37 +378,41 @@ export function Profile() {
           <Card className="border-green-100">
             <CardContent className="p-6 text-center">
               <div className="relative inline-block mb-4 group">
-                <Avatar
-                  className={`w-24 h-24 ${isEditing ? "cursor-pointer" : ""}`}
-                  onClick={() => {
-                    if (isEditing && fileInputRef.current) {
-                      fileInputRef.current.click();
-                    }
-                  }}
-                >
-                  <AvatarImage src={profile.avatar} />
-                  <AvatarFallback className="bg-green-100 text-green-700 text-2xl">
-                    {profile.firstName[0]}
-                    {profile.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-
-                {isEditing && (
-                  <>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      accept="image/*"
-                      onChange={handleFileSelect}
+                <div className="relative w-24 h-24 rounded-full overflow-hidden">
+                  {/* Image */}
+                  {profile.avatar ? (
+                    <img
+                      src={profile.avatar}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
                     />
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}>
-                      <Pencil className="h-6 w-6 text-white" />
+                  ) : (
+                    // Fallback
+                    <div className="w-full h-full bg-green-100 text-green-700 text-2xl flex items-center justify-center">
+                      {profile.firstName[0]}
+                      {profile.lastName[0]}
                     </div>
-                  </>
-                )}
+                  )}
+
+                  {/* Hover overlay - only show when editing */}
+                  {isEditing && (
+                    <>
+                      <input
+                        type="file"
+                        id="avatar-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                      />
+                      <label
+                        htmlFor="avatar-upload"
+                        className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer bg-gradient-to-b from-black/50 to-black/80"
+                      >
+                        <Pencil className="h-8 w-8 text-green-700" />
+                      </label>
+                    </>
+                  )}
+                </div>
               </div>
 
               <h2 className="text-xl text-gray-900">
@@ -388,16 +420,7 @@ export function Profile() {
               </h2>
               <p className="text-gray-600 mb-4">{profile.email}</p>
 
-              {/* <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-center gap-2 text-gray-600">
-                  <MapPin className="h-4 w-4" />
-                  <span>{profile.location}</span>
-                </div>
-                <div className="flex items-center justify-center gap-2 text-gray-600">
-                  <Calendar className="h-4 w-4" />
-                  <span>Member since Jan 2024</span>
-                </div>
-              </div> */}
+
 
               <div className="mt-4">
                 <Badge className="bg-green-100 text-green-800">Verified Farmer</Badge>
@@ -471,53 +494,16 @@ export function Profile() {
                     <Input
                       id="email"
                       type="email"
-                      value={isEditing ? editedProfile.email : profile.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      disabled={!isEditing}
+                      value={profile.email}
+                      disabled={true}
                       className="pl-10 border-green-200 focus:border-green-500"
                     />
                   </div>
                 </div>
-                {/* <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      id="phone"
-                      value={isEditing ? editedProfile.phone : profile.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      disabled={!isEditing}
-                      className="pl-10 border-green-200 focus:border-green-500"
-                    />
-                  </div>
-                </div> */}
+
               </div>
 
-              {/* <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="location"
-                    value={isEditing ? editedProfile.location : profile.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    disabled={!isEditing}
-                    className="pl-10 border-green-200 focus:border-green-500"
-                  />
-                </div>
-              </div> */}
 
-              {/* <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
-                <Textarea
-                  id="bio"
-                  rows={3}
-                  value={isEditing ? editedProfile.bio : profile.bio}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
-                  disabled={!isEditing}
-                  className="border-green-200 focus:border-green-500"
-                />
-              </div> */}
             </CardContent>
           </Card>
 
@@ -730,6 +716,7 @@ export function Profile() {
                           value={newEmail}
                           onChange={(e) => setNewEmail(e.target.value)}
                           className="pl-10 border-green-200 focus:border-green-500"
+                          disabled={isLoading}
                         />
                       </div>
                     </div>
@@ -745,11 +732,13 @@ export function Profile() {
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           className="pl-10 pr-10 border-green-200 focus:border-green-500"
+                          disabled={isLoading}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                          disabled={isLoading}
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -765,14 +754,16 @@ export function Profile() {
                           setNewEmail('');
                           setShowPassword(false);
                         }}
+                        disabled={isLoading}
                       >
                         Cancel
                       </Button>
                       <Button
                         onClick={handleEmailChange}
                         className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+                        disabled={isLoading}
                       >
-                        Continue
+                        {isLoading ? 'Sending Email...' : 'Continue'}
                       </Button>
                     </div>
                   </div>

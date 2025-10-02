@@ -7,7 +7,8 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
 import { verifySignupOtp, resendSignupOtp } from '../services/authService';
-import { FullScreenLoading } from './ui/loading';
+import { Loading } from './ui/loading';
+
 
 export function ConfirmOtpForSignup() {
   const navigate = useNavigate();
@@ -166,7 +167,10 @@ export function ConfirmOtpForSignup() {
   }
 
   if (isLoading) {
-    return <FullScreenLoading />;
+    return (<div className='border-2 border-black min-h-screen flex items-center justify-center'>
+      <Loading />
+    </div> // show loading spinner while fetching
+    )
   }
 
   return (

@@ -68,9 +68,8 @@ export const updateUserAvatar = async (file: File) => {
   try {
     const formData = new FormData();
     formData.append("file", file); // key matches backend parameter
-
     const response = await apiConnector(
-      "POST",
+      "PUT",
       `${API_ROUTES.UPDATE_USER_AVATAR}`,
       formData, // bodyData
       { "Content-Type": "multipart/form-data" } // headers
