@@ -266,7 +266,6 @@ async def get_user_details(user_id: str) -> dict:
 
 
 
-
 async def get_user_dashboard(user_id: str) -> UserDashboardResponse:
     """
     Fetch user and predictions from DB and build a dashboard summary.
@@ -288,18 +287,23 @@ async def get_user_dashboard(user_id: str) -> UserDashboardResponse:
 
     issues_detected = sum(
         1 for p in predictions
-        if p.prediction and p.prediction.lower() != "healthy"
+        if p.disease and p.disease.lower() != "healthy"
+    )
+
+    healthy_crops = sum(
+        1 for p in predictions
+        if p.disease and p.disease.lower() == "healthy"
     )
 
     crops_monitored_count = len(set(p.crop for p in predictions if p.crop))  # count of unique crops
-
+    
     return UserDashboardResponse(
         user_id=user.id,
         total_analyses=total_analyses,
         issues_detected=issues_detected,
+        healthy_crops=healthy_crops,
         crops_monitored=crops_monitored_count,  
     )
-
 
 
 
@@ -346,3 +350,6 @@ async def update_farm_size(user_id: str, farm_size: str) -> dict:
         raise ValueError(f"User with id {user_id} not found")
 
     return updated_user
+
+
+

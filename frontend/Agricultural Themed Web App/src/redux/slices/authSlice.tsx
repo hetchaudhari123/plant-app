@@ -1,8 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 // Define the user type 
+
 interface User {
     id: string;
+    profile_pic_url?: string;
 }
 
 // Define the auth state

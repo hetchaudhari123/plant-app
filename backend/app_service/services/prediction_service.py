@@ -14,7 +14,7 @@ from models.prediction import PredictionStatus
 from typing import List, Dict
 from pathlib import Path
 import json
-
+from bson import ObjectId
 
 async def get_prediction(model_name: str, file):
     files = {"file": (file.filename, await file.read(), file.content_type)}
@@ -198,3 +198,87 @@ def parse_crop_disease(label: str) -> tuple[str, str]:
         disease = "unknown"
     
     return crop, disease
+
+
+
+async def get_user_predictions(
+    user_id: str, 
+    skip: int = 0, 
+    limit: int = 5,
+    sort_by: str = "created_at",
+    sort_order: int = -1  # -1 for descending, 1 for ascending
+):
+    """
+    Get all predictions for a specific user with pagination and sorting.
+    """
+    # Find all predictions for this user with sorting
+    predictions_cursor = db_conn.predictions_collection.find(
+        {"user_id": user_id}
+    ).sort(sort_by, sort_order).skip(skip).limit(limit)
+    
+    predictions = await predictions_cursor.to_list(length=None)
+    
+    # Convert ObjectId to string for each prediction
+    for prediction in predictions:
+        if "_id" in prediction:
+            prediction["_id"] = str(prediction["_id"])
+        # Convert any other ObjectId fields if present
+        for key, value in prediction.items():
+            if isinstance(value, ObjectId):
+                prediction[key] = str(value)
+
+    # Get total count for pagination metadata
+    total_count = await db_conn.predictions_collection.count_documents({"user_id": user_id})
+    
+    return {
+        "predictions": predictions,
+        "total": total_count,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+
+
+async def delete_prediction(prediction_id: str, user_id: str = None):
+    """
+    Delete a specific prediction by prediction_id.
+    Optionally verify that the prediction belongs to the user_id for security.
+    
+    Args:
+        prediction_id: The ID of the prediction to delete (UUID string)
+        user_id: Optional user_id to ensure user owns the prediction
+    
+    Returns:
+        dict with success status and message
+    
+    Raises:
+        ValueError: If prediction not found
+    """
+    # Build query filter - use prediction_id as string directly
+    query_filter = {"prediction_id": prediction_id}  # or {"_id": prediction_id} depending on your schema
+    
+    # Add user_id to filter if provided (for security)
+    if user_id:
+        query_filter["user_id"] = user_id
+    
+    # Check if prediction exists before deleting
+    existing_prediction = await db_conn.predictions_collection.find_one(query_filter)
+    
+    if not existing_prediction:
+        if user_id:
+            raise ValueError(f"Prediction not found or does not belong to user")
+        else:
+            raise ValueError(f"Prediction with id {prediction_id} not found")
+    
+    # Delete the prediction
+    result = await db_conn.predictions_collection.delete_one(query_filter)
+    
+    if result.deleted_count == 1:
+        return {
+            "success": True,
+            "message": "Prediction deleted successfully",
+            "prediction_id": prediction_id
+        }
+    else:
+        raise ValueError(f"Failed to delete prediction with id {prediction_id}")

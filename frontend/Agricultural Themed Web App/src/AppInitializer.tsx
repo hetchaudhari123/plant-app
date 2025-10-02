@@ -19,7 +19,7 @@ function AppInitializer() {
                 const userData = await getUserDetails();
 
                 if (userData.id !== currentUserId) {
-                    dispatch(setUser({ id: userData.id }));
+                    dispatch(setUser({ id: userData.id, profile_pic_url: userData.profile_pic_url }));
                 }
                 dispatch(setIsAuthenticated(true));
             } catch (error) {

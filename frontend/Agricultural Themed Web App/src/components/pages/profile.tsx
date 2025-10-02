@@ -60,7 +60,7 @@ export function Profile() {
     totalAnalyses: 0,
     issuesDetected: 0,
     cropsMonitored: [] as string[],
-    successRate: 0,
+    healthyCrops: 0,
   });
   const [editedProfile, setEditedProfile] = useState<UserProfile>(profile);
   const [password, setPassword] = useState('');
@@ -173,11 +173,12 @@ export function Profile() {
         }); // initialize editedProfile here, after data is fetched
 
         const metricsData = await getUserDashboardMetrics(); // new API
+        console.log("METRICS IS....", metricsData)
         setMetrics({
           totalAnalyses: metricsData.total_analyses,
           issuesDetected: metricsData.issues_detected,
           cropsMonitored: metricsData.crops_monitored,
-          successRate: metricsData.success_rate,
+          healthyCrops: metricsData.healthy_crops,
         });
       } catch (error) {
         console.error("Failed to fetch profile:", error);
@@ -414,14 +415,15 @@ export function Profile() {
                 {[
                   { label: "Total Analyses", value: metrics.totalAnalyses },
                   { label: "Issues Detected", value: metrics.issuesDetected },
-                  { label: "Crops Monitored", value: metrics.cropsMonitored.length },
-                  { label: "Success Rate", value: `${metrics.successRate}%` }
+                  { label: "Crops Monitored", value: metrics.cropsMonitored ?? 0 },
+                  { label: "Healthy Crops", value: metrics.healthyCrops ?? 0 }
                 ].map((stat, index) => (
                   <div key={index} className="text-center">
                     <div className="text-2xl text-green-600 mb-1">{stat.value}</div>
                     <div className="text-xs text-gray-600">{stat.label}</div>
                   </div>
-                ))}
+                ))
+                }
               </div>
             </CardContent>
           </Card>

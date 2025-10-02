@@ -35,5 +35,7 @@ export const API_ROUTES = {
   GET_ALL_MODELS: "model/models",
 
   // PREDICTION
-  CREATE_PREDICTION: "prediction"
+  CREATE_PREDICTION: "prediction",
+  GET_USER_PREDICTIONS: "prediction/get-user-predictions",
+  DELETE_PREDICTION: "prediction/delete-prediction"
 };

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Calendar, Download, Filter, Search, Eye, Trash2, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Calendar, Download, Filter, Search, Eye, Trash2, MoreVertical, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -7,6 +7,30 @@ import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
+import { deletePrediction, getUserPredictions } from '../../services/modelService';
+import { toast } from 'sonner';
+// Type definitions
+interface Prediction {
+  prediction_id: string;
+  created_at: string;
+  date?: string;
+  image_url: string;
+  disease: string;
+  confidence?: number;
+  crop: string;
+  model_name?: string;
+  raw_output?: {
+    primary_confidence?: number;
+    [key: string]: any;
+  };
+}
+
+interface PredictionsResponse {
+  predictions: Prediction[];
+  total: number;
+  skip: number;
+  limit: number;
+}
 
 interface HistoryItem {
   id: string;
@@ -14,93 +38,83 @@ interface HistoryItem {
   image: string;
   disease: string;
   confidence: number;
-  severity: 'Low' | 'Medium' | 'High';
   cropType: string;
-  status: 'Treated' | 'In Progress' | 'Pending';
+  status: string;
 }
 
 export function History() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterSeverity, setFilterSeverity] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const toTitleCase = (text: string): string => {
+    return text
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+  // Extract the fetch function outside useEffect
+  const fetchPredictions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getUserPredictions({
+        skip: 0,
+        limit: 100,
+        sort_by: "created_at",
+        sort_order: -1
+      });
 
-  // Mock history data
-  const historyData: HistoryItem[] = [
-    {
-      id: '1',
-      date: '2024-01-15',
-      image: 'https://images.unsplash.com/photo-1620055494738-248ba57ed714?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwbGFudCUyMGxlYWYlMjBkaXNlYXNlfGVufDF8fHx8MTc1ODg3ODM4NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      disease: 'Leaf Spot Disease',
-      confidence: 87,
-      severity: 'Medium',
-      cropType: 'Tomato',
-      status: 'Treated'
-    },
-    {
-      id: '2',
-      date: '2024-01-14',
-      image: 'https://images.unsplash.com/photo-1620055494738-248ba57ed714?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwbGFudCUyMGxlYWYlMjBkaXNlYXNlfGVufDF8fHx8MTc1ODg3ODM4NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      disease: 'Powdery Mildew',
-      confidence: 92,
-      severity: 'High',
-      cropType: 'Cucumber',
-      status: 'In Progress'
-    },
-    {
-      id: '3',
-      date: '2024-01-13',
-      image: 'https://images.unsplash.com/photo-1620055494738-248ba57ed714?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwbGFudCUyMGxlYWYlMjBkaXNlYXNlfGVufDF8fHx8MTc1ODg3ODM4NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      disease: 'Healthy Plant',
-      confidence: 95,
-      severity: 'Low',
-      cropType: 'Lettuce',
-      status: 'Treated'
-    },
-    {
-      id: '4',
-      date: '2024-01-12',
-      image: 'https://images.unsplash.com/photo-1620055494738-248ba57ed714?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhwbGFudCUyMGxlYWYlMjBkaXNlYXNlfGVufDF8fHx8MTc1ODg3ODM4NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      disease: 'Bacterial Blight',
-      confidence: 84,
-      severity: 'High',
-      cropType: 'Pepper',
-      status: 'Pending'
-    },
-    {
-      id: '5',
-      date: '2024-01-11',
-      image: 'https://images.unsplash.com/photo-1620055494738-248ba57ed714?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHhwbGFudCUyMGxlYWYlMjBkaXNlYXNlfGVufDF8fHx8MTc1ODg3ODM4NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      disease: 'Nutrient Deficiency',
-      confidence: 78,
-      severity: 'Medium',
-      cropType: 'Corn',
-      status: 'In Progress'
+      console.log('API Response:', response);
+
+      if (!response) {
+        throw new Error('No response received from server');
+      }
+
+      if (!response.predictions || !Array.isArray(response.predictions)) {
+        throw new Error('Invalid response format: predictions array not found');
+      }
+
+      // Transform predictions to HistoryItem format
+      const transformedData: HistoryItem[] = response.predictions.map((pred: any) => ({
+        id: pred.prediction_id,
+        date: pred.created_at || pred.date,
+        image: pred.image_url,
+        disease: pred.disease,
+        confidence: Math.round((pred.raw_output?.primary_confidence ?? pred.confidence ?? 0) * 100),
+        cropType: pred.crop,
+        status: 'Completed'
+      }));
+
+      setHistoryData(transformedData);
+    } catch (err: any) {
+      console.error('Error fetching predictions:', err);
+      setError(err.message || 'Failed to fetch predictions');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Call on mount
+  useEffect(() => {
+    fetchPredictions();
+  }, []);
 
   const filteredData = historyData.filter(item => {
     const matchesSearch = item.disease.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.cropType.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSeverity = filterSeverity === 'all' || item.severity.toLowerCase() === filterSeverity;
+      item.cropType.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || item.status.toLowerCase().replace(' ', '') === filterStatus;
-    
-    return matchesSearch && matchesSeverity && matchesStatus;
-  });
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'Low': return 'bg-green-100 text-green-800';
-      case 'Medium': return 'bg-yellow-100 text-yellow-800';
-      case 'High': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Treated': return 'bg-green-100 text-green-800';
       case 'In Progress': return 'bg-blue-100 text-blue-800';
       case 'Pending': return 'bg-gray-100 text-gray-800';
+      case 'Completed': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -113,17 +127,70 @@ export function History() {
     });
   };
 
+  const handleDelete = async (predictionId: string) => {
+    try {
+      // Optimistically remove from UI immediately
+      setHistoryData(prev => prev.filter(item => item.id !== predictionId));
+
+      // Then delete from backend
+      await deletePrediction(predictionId);
+      toast.success("Prediction deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete prediction:", error);
+      toast.error("Failed to delete prediction. Please try again.");
+
+      // Refetch on error to restore correct state
+      await fetchPredictions();
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <Loader2 className="h-12 w-12 text-green-600 animate-spin mb-4" />
+          <h3 className="text-lg text-gray-900 mb-2">Loading Analysis History</h3>
+          <p className="text-gray-600">Please wait while we fetch your records...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-12 text-center">
+            <div className="text-red-600 mb-4">
+              <Calendar className="h-16 w-16 mx-auto mb-4" />
+            </div>
+            <h3 className="text-lg text-gray-900 mb-2">Error Loading History</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl text-gray-900">Analysis History</h1>
+          <h1 className="text-gray-900">Analysis History</h1>
           <p className="text-gray-600">View and manage your crop analysis records</p>
         </div>
-        <Button className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600">
+        {/* <Button className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600">
           <Download className="h-4 w-4 mr-2" />
           Export Data
-        </Button>
+        </Button> */}
       </div>
 
       {/* Filters */}
@@ -141,17 +208,6 @@ export function History() {
                 />
               </div>
             </div>
-            <Select value={filterSeverity} onValueChange={setFilterSeverity}>
-              <SelectTrigger className="w-full sm:w-40 border-green-200">
-                <SelectValue placeholder="Severity" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Severity</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-full sm:w-40 border-green-200">
                 <SelectValue placeholder="Status" />
@@ -161,6 +217,7 @@ export function History() {
                 <SelectItem value="treated">Treated</SelectItem>
                 <SelectItem value="inprogress">In Progress</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -185,7 +242,7 @@ export function History() {
             <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg text-gray-900 mb-2">No Analysis Found</h3>
             <p className="text-gray-600">
-              {searchTerm || filterSeverity !== 'all' || filterStatus !== 'all'
+              {searchTerm || filterStatus !== 'all'
                 ? 'Try adjusting your filters to see more results.'
                 : 'Start by uploading your first crop image for analysis.'}
             </p>
@@ -199,7 +256,7 @@ export function History() {
                 <div className="relative">
                   <ImageWithFallback
                     src={item.image}
-                    alt={`Analysis of ${item.disease}`}
+                    alt={`Analysis of ${toTitleCase(item.disease)}`}
                     className="w-full h-48 object-cover rounded-t-lg"
                   />
                   <div className="absolute top-2 right-2">
@@ -210,15 +267,24 @@ export function History() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        {/* <DropdownMenuItem>
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Download className="h-4 w-4 mr-2" />
                           Download Report
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">
+                        </DropdownMenuItem> */}
+                        <DropdownMenuItem
+                          className="text-red-600"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            // Show confirmation dialog
+                            // if (window.confirm("Are you sure you want to delete this prediction?")) {
+                            handleDelete(item.id);
+                            // }
+                          }}
+                        >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
@@ -228,14 +294,9 @@ export function History() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg text-gray-900 mb-1">{item.disease}</h3>
-                    <p className="text-sm text-gray-600">{item.cropType}</p>
-                  </div>
-                  <Badge className={getSeverityColor(item.severity)}>
-                    {item.severity}
-                  </Badge>
+                <div className="text-center">
+                  <h3 className="text-lg text-gray-900 mb-1">{toTitleCase(item.disease)}</h3>
+                  <p className="text-sm text-gray-600">{toTitleCase(item.cropType)}</p>
                 </div>
 
                 <div className="space-y-2">
@@ -255,7 +316,7 @@ export function History() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                {/* <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" className="flex-1 border-green-200 hover:bg-green-50">
                     <Eye className="h-4 w-4 mr-1" />
                     View
@@ -264,7 +325,7 @@ export function History() {
                     <Download className="h-4 w-4 mr-1" />
                     Export
                   </Button>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
           ))}

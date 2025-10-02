@@ -6,3 +6,4 @@ class UserDashboardResponse(BaseModel):
     total_analyses: int
     issues_detected: int
     crops_monitored: int
+    healthy_crops: int

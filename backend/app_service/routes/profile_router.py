@@ -140,16 +140,16 @@ async def route_get_user_by_id(user_id: str):
 
 
 @router.get("/users/get-dashboard-details", response_model=UserDashboardResponse)
-async def dashboard(current_user = Depends(require_user)):
+async def dashboard(user = Depends(require_user)):
     """
     Returns aggregated dashboard metrics for the logged-in user.
     """
 
-    if not current_user:
+    if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
-        dashboard_data = await get_user_dashboard(user_id=current_user.id)
+        dashboard_data = await get_user_dashboard(user_id=user.id)
         return dashboard_data
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
