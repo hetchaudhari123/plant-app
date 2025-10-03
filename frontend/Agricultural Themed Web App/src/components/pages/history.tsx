@@ -1,37 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Download, Filter, Search, Eye, Trash2, MoreVertical, Loader2 } from 'lucide-react';
+import { Calendar, Search, Trash2, MoreVertical, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { deletePrediction, getUserPredictions } from '../../services/modelService';
 import { toast } from 'sonner';
+
+
 // Type definitions
-interface Prediction {
-  prediction_id: string;
-  created_at: string;
-  date?: string;
-  image_url: string;
-  disease: string;
-  confidence?: number;
-  crop: string;
-  model_name?: string;
-  raw_output?: {
-    primary_confidence?: number;
-    [key: string]: any;
-  };
-}
-
-interface PredictionsResponse {
-  predictions: Prediction[];
-  total: number;
-  skip: number;
-  limit: number;
-}
-
 interface HistoryItem {
   id: string;
   date: string;
@@ -54,7 +34,8 @@ export function History() {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };
-  // Extract the fetch function outside useEffect
+
+  // Fetch function to populate the details
   const fetchPredictions = async () => {
     try {
       setLoading(true);
@@ -187,10 +168,7 @@ export function History() {
           <h1 className="text-gray-900">Analysis History</h1>
           <p className="text-gray-600">View and manage your crop analysis records</p>
         </div>
-        {/* <Button className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600">
-          <Download className="h-4 w-4 mr-2" />
-          Export Data
-        </Button> */}
+
       </div>
 
       {/* Filters */}
@@ -224,16 +202,7 @@ export function History() {
         </CardContent>
       </Card>
 
-      {/* Results Summary */}
-      {/* {filteredData.length > 0 && (
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <span>Showing {filteredData.length} of {historyData.length} results</span>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            <span>Filters applied</span>
-          </div>
-        </div>
-      )} */}
+
 
       {/* History Grid */}
       {filteredData.length === 0 ? (
@@ -267,22 +236,13 @@ export function History() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        {/* <DropdownMenuItem>
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Download className="h-4 w-4 mr-2" />
-                          Download Report
-                        </DropdownMenuItem> */}
+
                         <DropdownMenuItem
                           className="text-red-600"
                           onClick={(e) => {
                             e.preventDefault();
-                            // Show confirmation dialog
-                            // if (window.confirm("Are you sure you want to delete this prediction?")) {
+
                             handleDelete(item.id);
-                            // }
                           }}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
@@ -316,16 +276,7 @@ export function History() {
                   </div>
                 </div>
 
-                {/* <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1 border-green-200 hover:bg-green-50">
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 border-green-200 hover:bg-green-50">
-                    <Download className="h-4 w-4 mr-1" />
-                    Export
-                  </Button>
-                </div> */}
+
               </CardContent>
             </Card>
           ))}

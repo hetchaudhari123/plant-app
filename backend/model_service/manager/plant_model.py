@@ -6,7 +6,6 @@ import torch.nn as nn
 from PIL import Image
 import numpy as np
 
-from pydantic import Json
 
 
 class PlantModel:

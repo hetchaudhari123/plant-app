@@ -4,7 +4,7 @@ import { API_ROUTES } from "../config/apiRoutes";
 export const getUserById = async (userId: string) => {
   try {
     const response = await apiConnector("GET", `${API_ROUTES.GET_USER}/${userId}`);
-    return response.data; // assuming your API returns { data: user }
+    return response.data; 
   } catch (error: any) {
     console.error("Error fetching user:", error);
     throw error;
@@ -14,7 +14,7 @@ export const getUserById = async (userId: string) => {
 export const getUserDetails = async () => {
   try {
     const response = await apiConnector("GET", `${API_ROUTES.GET_USER_DETAILS}`);
-    return response.data; // assuming your API returns { data: user }
+    return response.data; 
   } catch (error: any) {
     console.error("Error fetching user:", error);
     throw error;
@@ -34,7 +34,7 @@ export const getUserPrimaryCrops = async () => {
 export const getUserDashboardMetrics = async () => {
   try {
     const response = await apiConnector("GET", `${API_ROUTES.GET_USER_DASHBOARD_DETAILS}`);
-    return response; // assuming your API returns { data: user }
+    return response; 
   } catch (error: any) {
     console.error("Error fetching user's dashboard metrics:", error);
     throw error;
@@ -56,7 +56,7 @@ export const updateUserName = async ({
         last_name: lastName,
       }
     );
-    return response; // assuming your API returns { data: user }
+    return response; 
   } catch (error: any) {
     console.error("Error fetching user's name:", error);
     throw error;
@@ -67,7 +67,7 @@ export const updateUserName = async ({
 export const updateUserAvatar = async (file: File) => {
   try {
     const formData = new FormData();
-    formData.append("file", file); // key matches backend parameter
+    formData.append("file", file); 
     const response = await apiConnector(
       "PUT",
       `${API_ROUTES.UPDATE_USER_AVATAR}`,
@@ -93,7 +93,7 @@ export const requestEmailUpdateOtp = async ({ new_email, current_password }: Upd
 
     const response = await apiConnector(
       "POST",
-      `${API_ROUTES.GET_OTP_FOR_EMAIL_CHANGE}`, // your backend route
+      `${API_ROUTES.GET_OTP_FOR_EMAIL_CHANGE}`,
       bodyData,
       { "Content-Type": "application/json" }
     );
@@ -119,7 +119,7 @@ export const verifyEmailUpdateOtp = async ({ otp_code, new_email, old_email }: V
     const bodyData = { otp_code: otp_code, new_email, old_email };
     const response = await apiConnector(
       "POST",
-      `${API_ROUTES.VERIFY_EMAIL_UPDATE_OTP}`, // your backend route
+      `${API_ROUTES.VERIFY_EMAIL_UPDATE_OTP}`, 
       bodyData,
       { "Content-Type": "application/json" }
     );
@@ -136,11 +136,11 @@ export const updateFarmSize = async (farmSize: string) => {
     const response = await apiConnector(
       "PUT",
       `${API_ROUTES.UPDATE_USER_FARM_SIZE}`,
-      { farm_size: farmSize }, // JSON body matching backend schema
-      { "Content-Type": "application/json" } // optional; axios sets it automatically
+      { farm_size: farmSize }, 
+      { "Content-Type": "application/json" } 
     );
 
-    return response; // { message: ..., user: ... }
+    return response; 
   } catch (error: any) {
     console.error("Error updating user's farm size:", error);
     throw error;
@@ -162,12 +162,12 @@ export const createOtpToken = async (email: String, new_email: String) => {
 
     const response = await apiConnector(
       "POST",
-      `${API_ROUTES.CREATE_OTP_TOKEN}`, // your backend route
+      `${API_ROUTES.CREATE_OTP_TOKEN}`, 
       { email, new_email },
       { "Content-Type": "application/json" }
     );
 
-    return response; // response should contain { otp_token, expires_at }
+    return response; 
   } catch (error: any) {
     console.error("Error creating OTP token:", error);
     throw error;
@@ -194,7 +194,6 @@ export const resendEmailChangeOtp = async () => {
   } catch (error: any) {
     console.error("Error resending OTP:", error);
 
-    // Optional: handle specific HTTP errors
     if (error.response?.status === 429) {
       throw new Error("Resend limit reached. Please restart the email change process.");
     } else if (error.response?.status === 404) {

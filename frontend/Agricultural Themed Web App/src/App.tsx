@@ -16,6 +16,7 @@ import { RootState } from './redux/store';
 import { Loading } from './components/ui/loading';
 import { ConfirmEmailChange } from './components/confirm-email-change';
 import { ConfirmOtpForSignup } from './components/confirm-otp-for-signup';
+import { CropsCoverage } from './components/crops-coverage';
 
 export default function App() {
   const isLoading = useSelector((state: RootState) => state.auth.loading);
@@ -74,12 +75,14 @@ export default function App() {
                   <Profile />
                 </PrivateRoute>
               } />
+
+              <Route path="/crops" element={<CropsCoverage />} />
             </Routes>
           </main>
           <Footer />
         </div>
       </Router>
-      
+
     </>
 
   );

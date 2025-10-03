@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Upload, Zap, Shield, BarChart3, ArrowRight, Camera, Leaf, Users, Image } from 'lucide-react';
+import { Upload, Zap, Shield, BarChart3, ArrowRight, Leaf, Users, Image } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { ImageWithFallback } from './figma/ImageWithFallback';
@@ -20,19 +20,13 @@ export function Landing() {
       icon: Shield,
       title: 'Preventive Care',
       description: 'Early detection helps prevent crop loss and increases yield'
-    },
-    // {
-    //   icon: BarChart3,
-    //   title: 'Detailed Reports',
-    //   description: 'Comprehensive analysis with treatment recommendations'
-    // }
+    }
   ];
 
   const stats = [
     { number: '5', label: 'AI Models' },
     { number: '99%', label: 'Accuracy Rate' },
     { number: '54', label: 'Crop Diseases Detected' },
-    // { number: '24/7', label: 'Support' }
   ];
 
   return (

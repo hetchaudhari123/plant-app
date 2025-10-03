@@ -1,4 +1,3 @@
-// redux/store/store.ts
 import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from "./combiner/combiner";
 

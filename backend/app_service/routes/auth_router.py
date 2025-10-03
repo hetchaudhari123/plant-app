@@ -19,7 +19,7 @@ class SignupSchema(BaseModel):
     first_name: str
     last_name: str
     password: str
-    confirm_password: str  # ✅ add this
+    confirm_password: str  
     otp_code: str
 
 class LoginSchema(BaseModel):
@@ -182,7 +182,6 @@ class SignupRequestOtpSchema(BaseModel):
 
 @router.post("/signup/request-otp", summary="Request OTP for signup")
 async def route_request_signup_otp(payload: SignupRequestOtpSchema):
-    # Validate password match
     
     
     result = await request_signup_otp(

@@ -5,6 +5,9 @@ For prod:
 gunicorn -k uvicorn.workers.UvicornWorker app_service:main --bind 0.0.0.0:8000 --workers 4
 
 remove returning token_version 
-add expires field
 see the url length
-handle removal of old history
+
+
+
+docker build -t app_service .
+docker run --env-file .env -p 8000:8000 app_service:latest

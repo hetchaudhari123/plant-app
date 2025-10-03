@@ -23,10 +23,6 @@ export function ResetPassword() {
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];
-    // if (password.length < 8) errors.push('At least 8 characters');
-    // if (!/[A-Z]/.test(password)) errors.push('One uppercase letter');
-    // if (!/[a-z]/.test(password)) errors.push('One lowercase letter');
-    // if (!/\d/.test(password)) errors.push('One number');
     return errors;
   };
 
@@ -189,31 +185,6 @@ export function ResetPassword() {
                 {errors.password && (
                   <p className="text-sm text-red-600">{errors.password}</p>
                 )}
-
-                {/* Password strength indicator */}
-                {/* {formData.password && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600">Password requirements:</p>
-                    <div className="space-y-1">
-                      {[
-                        { rule: 'At least 8 characters', test: formData.password.length >= 8 },
-                        { rule: 'One uppercase letter', test: /[A-Z]/.test(formData.password) },
-                        { rule: 'One lowercase letter', test: /[a-z]/.test(formData.password) },
-                        { rule: 'One number', test: /\d/.test(formData.password) }
-                      ].map((item, index) => (
-                        <div key={index} className="flex items-center text-sm">
-                          <CheckCircle
-                            className={`h-4 w-4 mr-2 ${item.test ? 'text-green-500' : 'text-gray-300'
-                              }`}
-                          />
-                          <span className={item.test ? 'text-green-600' : 'text-gray-500'}>
-                            {item.rule}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )} */}
               </div>
 
               <div className="space-y-2">

@@ -1,7 +1,6 @@
-from fastapi import HTTPException, Response, UploadFile, File, Depends
+from fastapi import HTTPException, Response, UploadFile, File
 from utils.security_utils import verify_password
 from utils.otp_utils import generate_secure_otp
-from datetime import datetime, timedelta, timezone
 from utils.email_utils import send_email
 from config.config import settings
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -14,8 +13,9 @@ from typing import List
 from schemas.UserDashboardResponseSchema import UserDashboardResponse
 from collections import Counter
 from pymongo import ReturnDocument
-from pydantic import BaseModel
 from passlib.context import CryptContext
+from datetime import datetime, timedelta, timezone, timedelta
+
 
 async def update_profile_name(user_id: str, first_name: str = None, last_name: str = None):
     """
@@ -160,6 +160,8 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
         "email": new_email,
         "otp": otp_code,
         "purpose":"email_change",
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
     }
 
     await db_conn.otps_collection.insert_one(otp_entry)
@@ -178,7 +180,7 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
     body = template.render(
         display_name=user.get("first_name", "User"),
         otp=otp_code,
-        expiry=settings.OTP_EXPIRE_MINUTES,  # or whatever config you have
+        expiry=settings.OTP_EXPIRE_MINUTES,  
     )
 
     # 7) Send OTP email (HTML)

@@ -1,8 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-import uuid
-from config.config import settings
 from enum import Enum
 
 

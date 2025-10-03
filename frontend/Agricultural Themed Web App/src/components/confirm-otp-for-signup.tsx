@@ -123,8 +123,6 @@ export function ConfirmOtpForSignup() {
 
       const res = await resendSignupOtp({ email });
 
-      console.log("OTP resent successfully");
-      console.log("Current resend count:", res.resend_count);
       toast.success(res.message || 'Verification code resent successfully');
 
       // Reset countdown

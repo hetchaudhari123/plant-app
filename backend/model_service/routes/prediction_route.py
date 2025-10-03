@@ -1,9 +1,8 @@
 from fastapi import APIRouter, UploadFile, Depends, File, Body
-from manager.initializer import setup_models
 from services.prediction_service import predict_service
 from dependencies import get_manager, get_idx2label
 from pydantic import BaseModel
-from typing import Any, Optional
+from typing import Optional
 from services.prediction_service import get_all_models_service, get_active_models_service, get_model_by_alias_service, get_model_by_id_service
 import db.connections as db_conn
 
@@ -19,7 +18,7 @@ async def predict(
     """
     Upload an image and get prediction from the specified model.
     """
-    # Call your service function, passing manager and IDX2LABEL
+    # Call the service function, passing manager and IDX2LABEL
     result = await predict_service(model_name, file, manager,idx2label)
     return result
 

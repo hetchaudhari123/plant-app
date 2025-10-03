@@ -17,7 +17,7 @@ interface ConfirmationModalProps {
   body: string;
   cancelText?: string;
   confirmText?: string;
-  primaryButtonColor?: 0 | 1; // 0 = green (safe), 1 = red (destructive)
+  primaryButtonColor?: 0 | 1; 
   onCancel?: () => void;
   onConfirm: () => void;
 }

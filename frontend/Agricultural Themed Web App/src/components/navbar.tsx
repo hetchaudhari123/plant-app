@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Leaf, Menu, X, User, Upload, History, Home } from 'lucide-react';
+import { Leaf, Menu, X, User, Upload, History, Home, Sprout } from 'lucide-react';
 import { Button } from './ui/button';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
@@ -17,7 +17,7 @@ export function Navbar() {
     { name: 'Home', href: '/', icon: Home },
     { name: 'Upload', href: '/upload', icon: Upload },
     { name: 'History', href: '/history', icon: History },
-    // Profile will be conditionally added later
+    { name: 'Crops We Cover', href: '/crops', icon: Sprout },
   ];
 
   if (isAuthenticated) {

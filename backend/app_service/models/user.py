@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from datetime import datetime, timezone, timedelta
-from config.config import settings
+from datetime import datetime, timezone
 from enum import Enum
 
 class FarmSizeEnum(str, Enum):

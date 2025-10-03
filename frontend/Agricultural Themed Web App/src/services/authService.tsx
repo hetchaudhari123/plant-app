@@ -1,8 +1,6 @@
-// src/services/authService.ts
 import { apiConnector } from "./apiconnector";
 import { API_ROUTES } from "../config/apiRoutes";
 
-// authService.ts
 export const sendOtp = async (email: string) => {
   return apiConnector("POST", API_ROUTES.SEND_OTP, { email });
 };

@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { User, Settings, Bell, Shield, Camera, Edit3, Save, X, Mail, Phone, MapPin, Calendar, Upload, Pencil, EyeOff, Eye, Lock, AlertTriangle, Trash2 } from 'lucide-react';
+import { User, Settings, Shield, Edit3, Save, X, Mail, Pencil, EyeOff, Eye, Lock, AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
 import { createOtpToken, deleteUser, getUserDashboardMetrics, getUserDetails, getUserPrimaryCrops, requestEmailUpdateOtp, updateFarmSize, updateUserAvatar, updateUserName } from '../../services/profileService';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
 import { changePassword, logoutUser } from '../../services/authService';
+import { logout, setIsAuthenticated, setUser } from '../../redux/slices/authSlice';
+import { useDispatch } from 'react-redux';
 
 export interface UserProfile {
   firstName: string;
@@ -40,12 +41,12 @@ export function Profile() {
     firstName: '',
     lastName: '',
     email: '',
-    farmSize: '',      // empty string initially
+    farmSize: '',
     cropTypes: [],
     avatar: ''
   });
 
-  const [avatarFile, setAvatarFile] = useState<File | null>(null); // temp file
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
 
 
@@ -127,11 +128,10 @@ export function Profile() {
       setTimeout(async () => {
         try {
           await logoutUser();
-          // Clear any local storage/session storage if needed
-          localStorage.clear(); // or specific items
+          // Clear any local storage storage if needed
+          localStorage.clear();
           navigate('/login');
         } catch (error) {
-          // Even if logout API fails, still redirect to login
           console.error("Logout API failed");
         }
       }, 1500);
@@ -164,8 +164,7 @@ export function Profile() {
         avatar: userData.profile_pic_url || ''
       }); // initialize editedProfile here, after data is fetched
 
-      const metricsData = await getUserDashboardMetrics(); // new API
-      console.log("METRICS IS....", metricsData)
+      const metricsData = await getUserDashboardMetrics();
       setMetrics({
         totalAnalyses: metricsData.total_analyses,
         issuesDetected: metricsData.issues_detected,
@@ -249,7 +248,6 @@ export function Profile() {
   };
 
 
-  // Updated handleEmailChange function with localStorage
   const handleEmailChange = async () => {
     // Validate inputs
     if (!password) {
@@ -294,7 +292,7 @@ export function Profile() {
       setIsLoading(false);
     }
   };
-
+  const dispatch = useDispatch();
   const handleSignOut = async () => {
 
     try {
@@ -304,15 +302,11 @@ export function Profile() {
 
       // Clear local storage
       localStorage.clear();
-
-      // Optionally, clear any user state if using context or Redux
-      // setUser(null);
-
+      dispatch(logout());
       // Navigate to login page
       navigate("/login");
     } catch (error) {
       console.error("Logout failed:", error);
-      // Optionally show a toast or alert
     }
   };
 
@@ -394,7 +388,6 @@ export function Profile() {
                     </div>
                   )}
 
-                  {/* Hover overlay - only show when editing */}
                   {isEditing && (
                     <>
                       <input
@@ -542,7 +535,7 @@ export function Profile() {
                     {profile.cropTypes.map((crop, index) => (
                       <Badge key={index} variant="secondary" className="bg-green-100 text-green-800">
                         {crop}
-                        {isEditing && (
+                        {false && (
                           <button className="ml-1 text-green-600 hover:text-green-800">
                             <X className="h-3 w-3" />
                           </button>

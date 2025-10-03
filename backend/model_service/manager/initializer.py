@@ -1,5 +1,4 @@
 import json
-import torch
 from manager.plant_model import PlantModel
 from manager.manager import ModelManager
 from config.config import settings
@@ -7,7 +6,6 @@ from saved_models.model_paths.model_paths import RESNET50_PATH, DENSENET121_PATH
 
 
 
-# initializer.py
 def setup_models(idx2label_path="saved_models/utils/idx2label.json"):
 
     with open(idx2label_path, "r") as f:
@@ -22,7 +20,7 @@ def setup_models(idx2label_path="saved_models/utils/idx2label.json"):
         name="resnet50",
         model_path=RESNET50_PATH,
         model_type="pytorch",
-        num_classes=settings.NUM_CLASSES  # set your number of classes here
+        num_classes=settings.NUM_CLASSES  
     ))
     manager.register_model(PlantModel(
         name="efficientnet_b4",

@@ -74,7 +74,6 @@ async def delete_prediction_endpoint(
             detail="Failed to delete prediction"
         )
     
-# Do not put any router function below this, keep this at the end only    
 @router.post("/{model_name}")
 async def create_prediction_endpoint(
     model_name: str,

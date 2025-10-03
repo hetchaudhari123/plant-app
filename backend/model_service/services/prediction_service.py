@@ -2,7 +2,6 @@ from fastapi import UploadFile, HTTPException
 from PIL import Image
 from manager import ModelManager
 from typing import List, Optional
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 import db.connections as db_conn
 

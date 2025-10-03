@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { Button } from "./components/ui/button";
 import {
   Dialog,
@@ -17,7 +16,6 @@ export default function ExamplePage() {
   return (
     <div className="p-8">
       <Dialog>
-        {/* IMPORTANT: use asChild so DialogTrigger delegates to your Button (no nested <button>) */}
         <DialogTrigger asChild>
           <Button>Open Dialog</Button>
         </DialogTrigger>

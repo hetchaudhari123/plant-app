@@ -4,7 +4,7 @@ from fastapi import HTTPException, Response, status, Request
 from datetime import datetime, timedelta, timezone, timedelta
 from jose import jwt, JWTError, ExpiredSignatureError
 from config.config import settings
-from pydantic import EmailStr, Field, BaseModel
+from pydantic import EmailStr
 
 from utils.otp_utils import generate_secure_otp
 from utils.email_utils import send_email
@@ -12,7 +12,6 @@ from utils.jinja_env import jinja_env
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import db.connections as db_conn
 
-from services.profile_service import get_user_by_id
 
 import secrets
 from fastapi.templating import Jinja2Templates
@@ -115,7 +114,7 @@ async def login_user(email: EmailStr, password: str, response: Response):
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,   # ⚠️ set False if developing without HTTPS
+        secure=True,   
         samesite="none",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
@@ -333,9 +332,7 @@ async def refresh_access_token(request: Request, response: Response):
             raise HTTPException(status_code=404, detail="User not found")
 
         # create new tokens
-        # 7) Create new tokens for current session
         current_token_version = user_doc.get("token_version", 0)
-        now = datetime.now(timezone.utc)
 
 
         new_access_token = create_access_token(user_id, current_token_version)
@@ -399,7 +396,7 @@ async def generate_otp_token(user_id: str, email: EmailStr, new_email: EmailStr)
 
     # 3) Compute expiry time for token
     expires_at = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.OTP_EXPIRE_MINUTES  # e.g. 10 minutes
+        minutes=settings.OTP_EXPIRE_MINUTES  
     )
 
     # 4) Insert new OTP token in collection

@@ -12,7 +12,7 @@ const OpenRoute: React.FC<OpenRouteProps> = ({ children }) => {
     if (!isAuthenticated) {
         return children; // user not logged in, allow access
     }
-    // ✅ If user is logged in, check if there's a redirect path
+    // If user is logged in, check if there's a redirect path
     const redirectPath = localStorage.getItem("redirectAfterLogin") || "/";
     return <Navigate to={redirectPath} />;
 };

@@ -1,44 +1,45 @@
-# ---- Stage 1: Build wheels ----
-FROM python:3.11.2-slim AS builder
+# ---- Stage 1: Builder ----
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Configure pip timeout (15 minutes = 900s)
-ENV PIP_DEFAULT_TIMEOUT=900
+# Install build dependencies (only for wheels)
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends build-essential gcc g++ && \
+#     rm -rf /var/lib/apt/lists/*
 
-# Install build deps (needed to compile some libs like scipy, lxml, etc.)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential gcc g++ && \
-    rm -rf /var/lib/apt/lists/*
+# Upgrade pip
+RUN pip install --upgrade pip setuptools wheel
 
-# Copy requirements
-COPY requirements.txt .
+# Copy requirements (split torch separately to control install)
+COPY requirements_without_torch.txt .
 
-# Upgrade pip + build wheels
-RUN pip install --upgrade pip setuptools wheel \
-    && pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+# Build wheels for non-torch deps
+RUN pip wheel --no-cache-dir --wheel-dir /wheels_others -r requirements_without_torch.txt
 
-# ---- Stage 2: Final image ----
-FROM python:3.11.2-slim
+# ---- Stage 2: Final Image ----
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Configure pip timeout (15 minutes = 900s)
-ENV PIP_DEFAULT_TIMEOUT=900
+# Only minimal runtime deps (needed by torch for OpenMP support)
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends libgomp1 && \
+#     rm -rf /var/lib/apt/lists/*
 
-# Install only runtime deps (curl, etc.)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# Install PyTorch CPU directly (lighter than building wheels)
+RUN pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cpu
 
-# Copy wheels from builder and install them
-COPY --from=builder /wheels /wheels
-RUN pip install --no-cache-dir /wheels/* \
-    && pip install --no-cache-dir gunicorn
+# Copy wheels for other deps
+COPY --from=builder /wheels_others /wheels_others
 
-# Copy application code
+# Install remaining deps
+RUN pip install --no-cache-dir /wheels_others/* && rm -rf /wheels_others ~/.cache/pip
+
+# Copy app
 COPY . .
 
 EXPOSE 8002
 
+# Use Gunicorn with Uvicorn workers
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4"]

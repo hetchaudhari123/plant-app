@@ -69,7 +69,6 @@ async def predict_service(model_name: str, file: UploadFile, user_id: str, top_k
             idx2label, 
             top_k
         )
-        
         # Extract primary (top 1) crop and disease from the main prediction
         primary_crop, primary_disease = parse_crop_disease(prediction_result.get("prediction", "unknown/unknown"))
 
@@ -256,7 +255,7 @@ async def delete_prediction(prediction_id: str, user_id: str = None):
         ValueError: If prediction not found
     """
     # Build query filter - use prediction_id as string directly
-    query_filter = {"prediction_id": prediction_id}  # or {"_id": prediction_id} depending on your schema
+    query_filter = {"prediction_id": prediction_id}  
     
     # Add user_id to filter if provided (for security)
     if user_id:

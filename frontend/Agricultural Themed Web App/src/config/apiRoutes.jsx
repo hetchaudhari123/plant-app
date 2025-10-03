@@ -1,5 +1,3 @@
-// src/config/apiRoutes.js
-
 export const API_ROUTES = {
   // User-related APIs
   LOGIN: "/auth/login",
@@ -31,7 +29,6 @@ export const API_ROUTES = {
   DELETE_USER: "profile/delete-account",
 
   // MODEL
-
   GET_ALL_MODELS: "model/models",
 
   // PREDICTION

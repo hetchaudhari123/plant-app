@@ -23,8 +23,7 @@ RUN apt-get update && \
 COPY --from=builder /app/wheels /wheels
 
 # Install dependencies from wheels + gunicorn
-RUN pip install --no-cache /wheels/* && \
-    pip install --no-cache gunicorn
+RUN pip install --no-cache /wheels/* 
 # Copy source code
 COPY . .
 

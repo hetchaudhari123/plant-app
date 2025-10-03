@@ -1,6 +1,5 @@
-# connections.py
 from motor.motor_asyncio import AsyncIOMotorClient  
-from config.config import settings  # your Pydantic Settings class
+from config.config import settings  
 import asyncio
 
 db = None
@@ -28,7 +27,6 @@ async def init_db(retries = 5, delay = 2):
             await predictions_collection.create_index("expires_at", expireAfterSeconds=0)
             await otp_tokens_collection.create_index("expires_at", expireAfterSeconds=0)
 
-            # print("✅ MongoDB connected successfully")
             return
 
         except Exception as e:

@@ -1,6 +1,6 @@
 # model_paths.py
 
-# Base directory where your models are saved
+# Base directory where the models are saved
 BASE_MODEL_DIR = "saved_models"
 
 # Individual PyTorch models

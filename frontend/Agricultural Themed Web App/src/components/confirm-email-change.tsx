@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, ArrowLeft, Shield, Check, Loader } from 'lucide-react';
+import { Mail, ArrowLeft, Shield, Check } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { toast } from 'sonner';
-import { requestEmailUpdateOtp, resendEmailChangeOtp, verifyEmailUpdateOtp } from '../services/profileService';
-import { Loading } from './ui/loading';
+import { resendEmailChangeOtp, verifyEmailUpdateOtp } from '../services/profileService';
 
 export function ConfirmEmailChange() {
   const navigate = useNavigate();
@@ -15,7 +14,6 @@ export function ConfirmEmailChange() {
   const [newEmail, setNewEmail] = useState('');
   const [oldEmail, setOldEmail] = useState('');
   const [isLoading, setIsLoading] = useState<boolean>(false); // loading state
-  // const [countdown, setCountdown] = useState(60);
   const [countdown, setCountdown] = useState(1);
   const [canResend, setCanResend] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -123,12 +121,9 @@ export function ConfirmEmailChange() {
     }
   };
 
-  // Inside your component
 
   const handleResendOtp = async () => {
     try {
-      // Call the frontend service function that handles incrementing resend count
-      // and sending a new OTP
       setIsLoading(true); // start loading before request
 
       const res = await resendEmailChangeOtp();

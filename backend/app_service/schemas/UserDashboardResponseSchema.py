@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import List
 
 class UserDashboardResponse(BaseModel):
     user_id: str

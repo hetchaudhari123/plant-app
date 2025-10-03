@@ -1,27 +1,22 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Image as ImageIcon, AlertCircle, CheckCircle, Loader2, X, Brain, TrendingUp, Award, Target, Leaf } from 'lucide-react';
+import { Upload, Image as ImageIcon, CheckCircle, Loader2, X, Brain, TrendingUp, Award, Target, Leaf } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { Label } from '../ui/label';
+import { RadioGroup } from '../ui/radio-group';
 import { ScrollArea } from '../ui/scroll-area';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { createPrediction, getAllModels } from '../../services/modelService';
-import { FullScreenLoading } from '../ui/loading';
 import { toast } from "sonner";
 
 
-interface Prediction {
-  name: string;
-  confidence: number;
-}
+
 
 interface PredictionItem {
   crop: string;
   disease: string;
-  confidence: number; // float between 0 and 1
+  confidence: number; 
   label: string;
   class_idx: number;
 }
@@ -53,18 +48,17 @@ export function ImageUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
   // Define the Model type
   interface Model {
     id: string;
     name: string;
     description: string;
-    accuracy: number; // Add this field
-    alias: string; // Add this field
+    accuracy: number; 
+    alias: string; 
   }
   // Inside your component:
-  const [models, setModels] = useState<Model[]>([]); // Add type annotation
+  const [models, setModels] = useState<Model[]>([]); 
   const formatConfidence = (confidence: number): string => {
     const percentage = confidence * 100;
     if (percentage < 0.01) {
@@ -74,13 +68,11 @@ export function ImageUpload() {
   };
   useEffect(() => {
     const fetchModels = async () => {
-      setLoading(true); // Set loading at the very start
-      setError(null); // Clear any previous errors
 
       try {
         const response = await getAllModels();
 
-        // Add console logs to debug the ID issue
+        
 
         // Extract name, description, and id from response
         const formattedModels = response.models.map((model: any) => ({
@@ -88,18 +80,15 @@ export function ImageUpload() {
           name: model.name,
           description: model.description,
           accuracy: model.accuracy,
-          alias: model.alias, // Extract alias from API response
+          alias: model.alias, 
         }));
 
         console.log('Formatted models:', formattedModels);
         setModels(formattedModels);
       } catch (err: any) {
         console.error('Failed to fetch models:', err);
-        setError(err.message || 'Failed to load models');
         setModels([]); // Clear models on error
-      } finally {
-        setLoading(false); // Always set loading to false
-      }
+      } 
     };
 
     fetchModels();
@@ -150,13 +139,13 @@ export function ImageUpload() {
       setAnalysisResult(response);
       toast.success('Image analyzed successfully!');
 
-      // Optional: Log the results
+    
       console.log('Analysis Result:', response);
 
     } catch (error: any) {
       console.error('Analysis failed:', error);
 
-      // Better error message extraction
+    
       const errorMessage =
         error.response?.data?.detail ||
         error.response?.data?.message ||
@@ -195,7 +184,6 @@ export function ImageUpload() {
     if (confidence >= 30) return 'bg-orange-500';
     return 'bg-red-500';
   };
-  // Add this helper function at the top of your component
   const toTitleCase = (text: string): string => {
     return text
       .split(' ')
@@ -387,7 +375,6 @@ export function ImageUpload() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Processing...</span>
-                    {/* <span>{uploadProgress}%</span> */}
                   </div>
                   <Progress value={uploadProgress} className="h-2" />
                 </div>
@@ -502,20 +489,6 @@ export function ImageUpload() {
                       </ScrollArea>
                     </div>
                   )}
-
-                  {/* Action Buttons */}
-                  {/* <div className="flex gap-3 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      className="flex-1 rounded-xl border-green-200 hover:bg-green-50"
-                      onClick={clearImage}
-                    >
-                      Analyze Another
-                    </Button>
-                    <Button className="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 rounded-xl">
-                      Save Results
-                    </Button>
-                  </div> */}
                 </div>
               )}
             </CardContent>

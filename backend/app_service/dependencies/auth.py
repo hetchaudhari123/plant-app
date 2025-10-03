@@ -1,4 +1,4 @@
-from fastapi import Depends, Request, Response, HTTPException, status
+from fastapi import Request, Response, HTTPException
 from config.config import settings
 from pydantic import BaseModel
 from utils.auth_utils import (

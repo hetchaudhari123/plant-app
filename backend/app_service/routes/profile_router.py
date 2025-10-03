@@ -1,5 +1,4 @@
-# app/routes/profile_router.py
-from fastapi import APIRouter, UploadFile, File, Response, Depends, HTTPException, status, Depends, Body
+from fastapi import APIRouter, UploadFile, File, Response, Depends, HTTPException, Depends, Body
 from pydantic import BaseModel, EmailStr, Field
 from services.profile_service import (
     update_profile_name,
@@ -17,8 +16,6 @@ from schemas.UserDashboardResponseSchema import UserDashboardResponse
 from services.profile_service import get_user_dashboard, update_farm_size
 from typing import List
 from models.user import User
-from models.prediction import Prediction
-import db.connections as db_conn
 
 router = APIRouter()
 
@@ -47,7 +44,7 @@ class ConfirmEmailChangeSchema(BaseModel):
 @router.put("/update-name", summary="Update first and/or last name")
 async def route_update_name(
     payload: UpdateNameSchema,
-    user=Depends(require_user)  # ✅ inject authenticated user here
+    user=Depends(require_user)  # inject authenticated user here
 ):
     user_id=user.id  # get user_id from JWT
     await update_profile_name(
@@ -86,7 +83,7 @@ async def route_update_profile_picture(
 @router.post("/request-email-change", summary="Request to change email")
 async def route_request_email_change(
     payload: EmailChangeRequestSchema,
-    user=Depends(require_user)  # ✅ inject authenticated user
+    user=Depends(require_user)  # inject authenticated user
 ):
     user_id=user.id  # get user_id from JWT
 
@@ -101,7 +98,7 @@ async def route_request_email_change(
 @router.post("/confirm-email-change", summary="Confirm email change with OTP")
 async def route_confirm_email_change(
     payload: ConfirmEmailChangeSchema,
-    user=Depends(require_user)  # ✅ inject authenticated user
+    user=Depends(require_user)  # inject authenticated user
 ):
     user_id=user.id  # get user_id from JWT
 
