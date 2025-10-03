@@ -42,4 +42,5 @@ COPY . .
 EXPOSE 8002
 
 # Use Gunicorn with Uvicorn workers
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4"]
+# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4"]
+CMD gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT --workers 1
