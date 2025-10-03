@@ -1,2 +1,14 @@
 .env
 *.env
+.venv
+build/
+dist/
+wheels/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.egg-info
+__pycache__/
