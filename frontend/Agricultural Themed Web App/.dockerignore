@@ -1,0 +1,36 @@
+# Node.js dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# Build output (we only copy final build when needed)
+dist
+build
+
+# Local environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.env
+
+# Git & editor stuff
+.git
+.gitignore
+Dockerfile*
+.dockerignore
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+#test coverage And logs
+logs
+*.log
+coverage

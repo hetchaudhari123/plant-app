@@ -9,3 +9,4 @@ docker build -t model_service .
 
 # docker run command
 docker run --env-file .env -p 8002:8002 model_service:latest
+

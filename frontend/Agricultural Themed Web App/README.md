@@ -16,3 +16,6 @@
   -> Handle loading
   -> Check Countdown for signup, email change
   -> setError might not be required in slice
+  # how to docker build
+  docker build -t frontend_service .
+  docker run --env-file .env -p 3000:80 frontend_service:latest
