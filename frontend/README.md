@@ -20,3 +20,8 @@
   docker build --build-arg VITE_API_URL=http://app_service:8000 --build-arg VITE_MODEL_API_URL=http://model_service:8002 -t frontend_service:latest .
 
   docker run --env-file .env -p 3000:80 frontend_service:latest
+
+
+  docker tag project-frontend hetchaudhari/agri-vision-frontend-service:latest
+
+  docker push hetchaudhari/agri-vision-frontend-service:latest

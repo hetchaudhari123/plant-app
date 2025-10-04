@@ -11,3 +11,9 @@ see the url length
 
 docker build -t app_service .
 docker run --env-file .env -p 8000:8000 app_service:latest
+
+
+
+docker tag project-app_service hetchaudhari/agri-vision-app-service:latest
+
+docker push hetchaudhari/agri-vision-app-service:latest

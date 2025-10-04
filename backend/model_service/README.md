@@ -10,3 +10,9 @@ docker build -t model_service .
 # docker run command
 docker run --env-file .env -p 8002:8002 model_service:latest
 
+
+
+docker tag project-model_service hetchaudhari/agri-vision-model-service:latest
+
+docker push hetchaudhari/agri-vision-model-service:latest
+
