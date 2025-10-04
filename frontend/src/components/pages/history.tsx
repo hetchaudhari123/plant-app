@@ -202,7 +202,12 @@ export function History() {
         </CardContent>
       </Card>
 
-
+      <div className="mb-6">
+        <p className="text-sm text-gray-600">
+          Showing <span className="text-green-700">{filteredData.length}</span> of{' '}
+          <span className="text-green-700">{historyData.length}</span> crops
+        </p>
+      </div>
 
       {/* History Grid */}
       {filteredData.length === 0 ? (
