@@ -41,7 +41,7 @@ pipeline {
                         dir("${MODEL_SERVICE_DIR}") {
                             bat 'uv python install 3.11'
                             bat 'uv init --python 3.11'
-                            bat 'uv add -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu'
+                            bat 'uv add -r requirements.txt --index https://pypi.org/simple --index https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match'
                         }
                     }
                 }
