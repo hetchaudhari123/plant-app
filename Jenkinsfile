@@ -10,6 +10,11 @@ pipeline {
     }
 
     stages {
+        stage('Check PATH') {
+            steps {
+                bat 'echo %PATH%'
+            }
+        }
 
         stage('Checkout Code') {
             steps {
