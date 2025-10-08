@@ -24,10 +24,8 @@ pipeline {
                     steps {
                         echo "📦 Setting up app_service virtual environment"
                         dir("${APP_SERVICE_DIR}") {
-                            bat """
-                                uv init --python 3.11.2 &&
-                                uv add -r requirements.txt
-                            """
+                            bat 'uv init --python 3.11.2'
+                            bat 'uv add -r requirements.txt'
                         }
                     }
                 }
@@ -35,10 +33,8 @@ pipeline {
                     steps {
                         echo "📦 Setting up model_service virtual environment"
                         dir("${MODEL_SERVICE_DIR}") {
-                            bat """
-                                uv init --python 3.11.2 &&
-                                uv add -r requirements.txt
-                            """
+                            bat 'uv init --python 3.11.2'
+                            bat 'uv add -r requirements.txt'
                         }
                     }
                 }
@@ -49,7 +45,7 @@ pipeline {
             steps {
                 echo "📦 Installing frontend dependencies with npm"
                 dir("${FRONTEND_DIR}") {
-                    bat "npm install"
+                    bat 'npm install'
                 }
             }
         }
@@ -60,10 +56,8 @@ pipeline {
                     steps {
                         echo "🧹 Running Ruff and Black checks on app_service"
                         dir("${APP_SERVICE_DIR}") {
-                            bat """
-                                uv run ruff check . &&
-                                uv run black --check .
-                            """
+                            bat 'uv run ruff check .'
+                            bat 'uv run black --check .'
                         }
                     }
                 }
@@ -71,10 +65,8 @@ pipeline {
                     steps {
                         echo "🧹 Running Ruff and Black checks on model_service"
                         dir("${MODEL_SERVICE_DIR}") {
-                            bat """
-                                uv run ruff check . &&
-                                uv run black --check .
-                            """
+                            bat 'uv run ruff check .'
+                            bat 'uv run black --check .'
                         }
                     }
                 }
@@ -85,7 +77,7 @@ pipeline {
             steps {
                 echo "🧹 Running ESLint on frontend"
                 dir("${FRONTEND_DIR}") {
-                    bat "npm run lint || exit 0"
+                    bat 'npm run lint || exit 0'
                 }
             }
         }
@@ -94,13 +86,10 @@ pipeline {
             steps {
                 echo "🧪 Running backend tests with coverage"
                 dir("${BACKEND_DIR}") {
-                    bat """
-                        cd app_service &&
-                        uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:coverage-app.xml --junitxml=test-results-app.xml -v &&
-
-                        cd ..\\model_service &&
-                        uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:coverage-model.xml --junitxml=test-results-model.xml -v
-                    """
+                    bat 'cd app_service'
+                    bat 'uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:coverage-app.xml --junitxml=test-results-app.xml -v'
+                    bat 'cd ..\\model_service'
+                    bat 'uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:coverage-model.xml --junitxml=test-results-model.xml -v'
                 }
             }
             post {
@@ -118,7 +107,7 @@ pipeline {
             steps {
                 echo "🏗️ Building React frontend with Vite"
                 dir("${FRONTEND_DIR}") {
-                    bat "npm run build"
+                    bat 'npm run build'
                 }
             }
         }
@@ -131,19 +120,25 @@ pipeline {
                 stage('Build App Service Image') {
                     steps {
                         echo "🐳 Building Docker image for app_service"
-                        bat "docker build -t %APP_NAME%_app:%GIT_COMMIT% .\\${APP_SERVICE_DIR}"
+                        dir("${APP_SERVICE_DIR}") {
+                            bat "docker build -t %APP_NAME%_app:%GIT_COMMIT% ."
+                        }
                     }
                 }
                 stage('Build Model Service Image') {
                     steps {
                         echo "🐳 Building Docker image for model_service"
-                        bat "docker build -t %APP_NAME%_model:%GIT_COMMIT% .\\${MODEL_SERVICE_DIR}"
+                        dir("${MODEL_SERVICE_DIR}") {
+                            bat "docker build -t %APP_NAME%_model:%GIT_COMMIT% ."
+                        }
                     }
                 }
                 stage('Build Frontend Image') {
                     steps {
                         echo "🐳 Building Docker image for frontend"
-                        bat "docker build -t %APP_NAME%_frontend:%GIT_COMMIT% .\\${FRONTEND_DIR}"
+                        dir("${FRONTEND_DIR}") {
+                            bat "docker build -t %APP_NAME%_frontend:%GIT_COMMIT% ."
+                        }
                     }
                 }
             }
@@ -155,11 +150,10 @@ pipeline {
             }
             steps {
                 echo "🚀 Deploying all services"
-                bat """
-                    docker-compose -f docker-compose.yml down &&
-                    set APP_NAME=%APP_NAME% && set GIT_COMMIT=%GIT_COMMIT% &&
-                    docker-compose -f docker-compose.yml up -d
-                """
+                bat 'docker-compose -f docker-compose.yml down'
+                bat 'set APP_NAME=%APP_NAME%'
+                bat 'set GIT_COMMIT=%GIT_COMMIT%'
+                bat 'docker-compose -f docker-compose.yml up -d'
             }
         }
 
