@@ -12,3 +12,11 @@ backend/model_service/.venv
 backend/app_service/.venv
 frontend/.env
 frontend/node_modules
+backend/app_service/.coverage
+backend/app_service/.python-version
+backend/app_service/pyproject.toml
+backend/app_service/uv.lock
+backend/model_service/.coverage
+backend/model_service/.python-version
+backend/model_service/pyproject.toml
+backend/model_service/uv.lock
