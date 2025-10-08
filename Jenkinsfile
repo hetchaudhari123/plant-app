@@ -29,7 +29,6 @@ pipeline {
                     steps {
                         echo "📦 Setting up app_service virtual environment"
                         dir("${APP_SERVICE_DIR}") {
-                            bat 'uv init --python 3.11.2'
                             bat 'uv add -r requirements.txt'
                         }
                     }
@@ -38,7 +37,6 @@ pipeline {
                     steps {
                         echo "📦 Setting up model_service virtual environment"
                         dir("${MODEL_SERVICE_DIR}") {
-                            bat 'uv init --python 3.11.2'
                             bat 'uv add -r requirements.txt'
                         }
                     }
