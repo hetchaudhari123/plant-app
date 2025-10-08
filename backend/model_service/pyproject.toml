@@ -7,6 +7,7 @@ requires-python = ">=3.11.2"
 dependencies = [
     "annotated-types==0.7.0",
     "anyio==4.10.0",
+    "black>=25.9.0",
     "click==8.3.0",
     "colorama==0.4.6",
     "dnspython==2.8.0",
@@ -30,6 +31,8 @@ dependencies = [
     "pydantic-core==2.33.2",
     "pydantic-settings==2.10.1",
     "pymongo==4.15.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
     "python-dotenv==1.1.1",
     "python-multipart==0.0.20",
     "scikit-learn==1.2.2",

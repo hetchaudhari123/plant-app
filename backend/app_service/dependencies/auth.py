@@ -11,7 +11,6 @@ from utils.auth_utils import (
 from typing import Optional
 
 
-
 class AuthUser(BaseModel):
     id: str
     token_version: int
@@ -45,16 +44,28 @@ async def require_user(request: Request, response: Response) -> AuthUser:
             raise HTTPException(status_code=401, detail="Session expired")
 
         # Issue new tokens using the refresh token
-        new_access = create_access_token(user_id=refresh_payload.sub, token_version=refresh_payload.token_version)
-        new_refresh = create_refresh_token(user_id=refresh_payload.sub, token_version=refresh_payload.token_version)
+        new_access = create_access_token(
+            user_id=refresh_payload.sub, token_version=refresh_payload.token_version
+        )
+        new_refresh = create_refresh_token(
+            user_id=refresh_payload.sub, token_version=refresh_payload.token_version
+        )
 
         response.set_cookie(
-            "access_token", new_access, httponly=True, secure=True, samesite="none",
-            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            "access_token",
+            new_access,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
         response.set_cookie(
-            "refresh_token", new_refresh, httponly=True, secure=True, samesite="none",
-            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+            "refresh_token",
+            new_refresh,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         )
 
         payload = refresh_payload  # now payload has valid user info

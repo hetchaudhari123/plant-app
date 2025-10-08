@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class UserDashboardResponse(BaseModel):
     user_id: str
     total_analyses: int

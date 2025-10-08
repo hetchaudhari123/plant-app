@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Settings, Shield, Edit3, Save, X, Mail, Pencil, EyeOff, Eye, Lock, AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -10,8 +10,9 @@ import { createOtpToken, deleteUser, getUserDashboardMetrics, getUserDetails, ge
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
 import { changePassword, logoutUser } from '../../services/authService';
-import { logout, setIsAuthenticated, setUser } from '../../redux/slices/authSlice';
+import { logout } from '../../redux/slices/authSlice';
 import { useDispatch } from 'react-redux';
+import { AxiosError } from "axios";
 
 export interface UserProfile {
   firstName: string;
@@ -88,9 +89,26 @@ export function Profile() {
       localStorage.clear();
       navigate('/');
 
-    } catch (error: any) {
+    }
+    catch (error: unknown) {
       console.error("Error deleting account:", error);
-      toast.error(error?.response?.data?.message || "Incorrect password or failed to delete account");
+
+      let message = "Incorrect password or failed to delete account";
+
+      if (error instanceof AxiosError) {
+        // Explicitly type the response data
+        const data = error.response?.data as { message?: string } | undefined;
+
+        if (data?.message) {
+          message = data.message;
+        } else if (error.message) {
+          message = error.message;
+        }
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
+
+      toast.error(message);
     }
   };
   const handleChangePassword = async () => {
@@ -132,13 +150,23 @@ export function Profile() {
           localStorage.clear();
           navigate('/login');
         } catch (error) {
-          console.error("Logout API failed");
+          console.error("Logout API failed...", error);
         }
       }, 1500);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error changing password:", error);
-      toast.error(error?.response?.data?.message || "Failed to change password. Please try again.");
+
+      let message = "Failed to change password. Please try again.";
+
+      if (error instanceof AxiosError) {
+        // Safely access the backend message
+        message = error.response?.data?.message || message;
+      } else if (error instanceof Error) {
+        message = error.message || message;
+      }
+
+      toast.error(message);
     }
   };
 
@@ -184,7 +212,6 @@ export function Profile() {
 
 
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
@@ -535,11 +562,7 @@ export function Profile() {
                     {profile.cropTypes.map((crop, index) => (
                       <Badge key={index} variant="secondary" className="bg-green-100 text-green-800">
                         {crop}
-                        {false && (
-                          <button className="ml-1 text-green-600 hover:text-green-800">
-                            <X className="h-3 w-3" />
-                          </button>
-                        )}
+
                       </Badge>
                     ))}
                   </div>

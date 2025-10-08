@@ -21,7 +21,7 @@ function AppInitializer() {
                     dispatch(setUser({ id: userData.id, profile_pic_url: userData.profile_pic_url }));
                 }
                 dispatch(setIsAuthenticated(true));
-            } catch (error) {
+            } catch{
                 dispatch(setUser(null));
                 dispatch(setIsAuthenticated(false));
             } finally {

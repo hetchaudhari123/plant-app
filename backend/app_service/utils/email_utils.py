@@ -5,15 +5,11 @@ from config.config import settings
 
 
 async def send_email(
-    to_email: str,
-    subject: str,
-    body: str,
-    is_html: bool = True,
-    port: int = 587
+    to_email: str, subject: str, body: str, is_html: bool = True, port: int = 587
 ):
     """
     Send an email using Gmail SMTP.
-    
+
     Args:
         to_email (str): Recipient email address
         subject (str): Email subject

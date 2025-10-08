@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime, timezone
 from enum import Enum
 
+
 class FarmSizeEnum(str, Enum):
     ONE_TO_FIVE = "1-5 acres"
     FIVE_TO_TWENTY = "5-20 acres"
@@ -25,10 +26,7 @@ class User(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_login: Optional[datetime] = None
 
-
     class Config:
         validate_by_name = True  # allows using "id" instead of "id"
-        arbitrary_types_allowed = True 
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
+        arbitrary_types_allowed = True
+        json_encoders = {datetime: lambda dt: dt.isoformat()}

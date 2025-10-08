@@ -5,15 +5,14 @@ from routes.profile_router import router as profile_router
 from contextlib import asynccontextmanager
 from db.connections import init_db
 from fastapi.middleware.cors import CORSMiddleware
-from config.config import settings 
-import config.cloudinary 
+import config.cloudinary  # noqa: F401
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ----- Startup logic -----
     await init_db()  # initialize MongoDB connection
     print("✅ MongoDB connected successfully")
-
 
     yield  # application runs here
 
@@ -22,13 +21,11 @@ async def lifespan(app: FastAPI):
     print("DB Service shutting down")
 
 
-
 # Create FastAPI app with lifespan
 app = FastAPI(title="Plant App 🌱", lifespan=lifespan)
 
 
-
-origins = ["*"]  
+origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -44,10 +41,10 @@ app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(profile_router, prefix="/profile", tags=["Profile"])
 app.include_router(prediction_router, prefix="/prediction", tags=["Prediction"])
 
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
 
 
 @app.get("/")

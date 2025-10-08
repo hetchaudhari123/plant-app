@@ -1,12 +1,12 @@
-from motor.motor_asyncio import AsyncIOMotorClient  
-from config.config import settings  
+from motor.motor_asyncio import AsyncIOMotorClient
+from config.config import settings
 import asyncio
 
 db = None
 models_collection = None
 
 
-async def init_db(retries = 5, delay = 2):
+async def init_db(retries=5, delay=2):
     global db, models_collection
     for attempt in range(retries):
         try:
@@ -15,7 +15,7 @@ async def init_db(retries = 5, delay = 2):
             db = client[settings.MONGO_DB_NAME]
 
             models_collection = db["models"]
-            
+
             return
 
         except Exception as e:
@@ -23,6 +23,3 @@ async def init_db(retries = 5, delay = 2):
             await asyncio.sleep(delay)
 
     raise Exception("❌ Failed to connect to MongoDB after several retries")
-
-
-

@@ -128,18 +128,23 @@ export function ConfirmOtpForSignup() {
       // Reset countdown
       setCountdown(1);
       setCanResend(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle specific backend errors
-      if (error.message.includes("Resend limit reached")) {
-        toast.error("Resend limit reached. Please restart the signup process.");
-        localStorage.removeItem('signupEmail');
-        navigate("/login");
-      } else if (error.message.includes("OTP token not found")) {
-        toast.error("OTP token not found or expired. Redirecting to signup...");
-        localStorage.removeItem('signupEmail');
-        navigate("/login");
+      if (error instanceof Error) {
+        if (error.message.includes("Resend limit reached")) {
+          toast.error("Resend limit reached. Please restart the signup process.");
+          localStorage.removeItem('signupEmail');
+          navigate("/login");
+        } else if (error.message.includes("OTP token not found")) {
+          toast.error("OTP token not found or expired. Redirecting to signup...");
+          localStorage.removeItem('signupEmail');
+          navigate("/login");
+        } else {
+          console.error("Error resending OTP:", error);
+          toast.error("Failed to resend OTP. Please try again later.");
+        }
       } else {
-        console.error("Error resending OTP:", error);
+        console.error("Unknown error resending OTP:", error);
         toast.error("Failed to resend OTP. Please try again later.");
       }
     } finally {

@@ -1,5 +1,5 @@
-from motor.motor_asyncio import AsyncIOMotorClient  
-from config.config import settings  
+from motor.motor_asyncio import AsyncIOMotorClient
+from config.config import settings
 import asyncio
 
 db = None
@@ -8,7 +8,8 @@ users_collection = None
 predictions_collection = None
 otp_tokens_collection = None
 
-async def init_db(retries = 5, delay = 2):
+
+async def init_db(retries=5, delay=2):
     global db, users_collection, predictions_collection, otps_collection, otp_tokens_collection
     for attempt in range(retries):
         try:
@@ -24,7 +25,9 @@ async def init_db(retries = 5, delay = 2):
 
             # Create TTL indexes
             await otps_collection.create_index("expires_at", expireAfterSeconds=0)
-            await predictions_collection.create_index("expires_at", expireAfterSeconds=0)
+            await predictions_collection.create_index(
+                "expires_at", expireAfterSeconds=0
+            )
             await otp_tokens_collection.create_index("expires_at", expireAfterSeconds=0)
 
             return

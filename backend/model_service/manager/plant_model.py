@@ -7,10 +7,16 @@ from PIL import Image
 import numpy as np
 
 
-
 class PlantModel:
-    def __init__(self, name: str, model_path: str, model_type: str, num_classes: int = None, model_order: list = None,
-                 device = "cpu"):
+    def __init__(
+        self,
+        name: str,
+        model_path: str,
+        model_type: str,
+        num_classes: int = None,
+        model_order: list = None,
+        device="cpu",
+    ):
         """
         model_type: 'pytorch' or 'sklearn'
         num_classes: required for PyTorch models to rebuild the classifier
@@ -41,17 +47,21 @@ class PlantModel:
     def build_model_arch(self) -> nn.Module:
         """Rebuild the architecture with the correct number of classes"""
         if self.name.startswith("resnet"):
-            model = getattr(tv_models, self.name)(weights = None)
+            model = getattr(tv_models, self.name)(weights=None)
             model.fc = nn.Linear(model.fc.in_features, self.num_classes)
         elif self.name.startswith("efficientnet"):
-            model = getattr(tv_models, self.name)(weights = None)
-            model.classifier[1] = nn.Linear(model.classifier[1].in_features, self.num_classes)
+            model = getattr(tv_models, self.name)(weights=None)
+            model.classifier[1] = nn.Linear(
+                model.classifier[1].in_features, self.num_classes
+            )
         elif self.name.startswith("densenet"):
-            model = getattr(tv_models, self.name)(weights = None)
+            model = getattr(tv_models, self.name)(weights=None)
             model.classifier = nn.Linear(model.classifier.in_features, self.num_classes)
         elif self.name.startswith("mobilenet"):
-            model = getattr(tv_models, self.name)(weights = None)
-            model.classifier[3] = nn.Linear(model.classifier[3].in_features, self.num_classes)
+            model = getattr(tv_models, self.name)(weights=None)
+            model.classifier[3] = nn.Linear(
+                model.classifier[3].in_features, self.num_classes
+            )
         else:
             raise ValueError(f"Model {self.name} not supported")
         return model
@@ -64,19 +74,25 @@ class PlantModel:
                 transforms.Resize(256),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
         input_tensor = transform(image).unsqueeze(0)  # Add batch dim
         return input_tensor.to(self.device)
 
-    def _get_base_model_probs_from_manager(self, image: Image.Image, manager: Any) -> np.ndarray:
+    def _get_base_model_probs_from_manager(
+        self, image: Image.Image, manager: Any
+    ) -> np.ndarray:
         """
         Given a PIL image and a ModelManager, ask each non-ensemble PyTorch model for probabilities,
         then concatenate them into a single 1D feature vector (shape (1, total_features)).
         """
         if manager is None:
-            raise ValueError("ModelManager is required to assemble stacked features for ensemble model.")
+            raise ValueError(
+                "ModelManager is required to assemble stacked features for ensemble model."
+            )
 
         probs_list = []
         for m_name in self.model_order:
@@ -98,9 +114,13 @@ class PlantModel:
             probs_list.append(base_out.flatten())
 
         if not probs_list:
-            raise ValueError("No base PyTorch models found in manager to build features for ensemble.")
+            raise ValueError(
+                "No base PyTorch models found in manager to build features for ensemble."
+            )
 
-        stacked = np.concatenate(probs_list).reshape(1, -1)  # shape (1, sum(num_classes_per_model))
+        stacked = np.concatenate(probs_list).reshape(
+            1, -1
+        )  # shape (1, sum(num_classes_per_model))
         return stacked
 
     def predict(self, input_data: Any, manager: Optional[Any] = None) -> Any:
@@ -124,13 +144,19 @@ class PlantModel:
 
             elif self.model_type == "sklearn":
                 # For the stacking ensemble: gather base model probs via manager and then call sklearn
-                stacked_features = self._get_base_model_probs_from_manager(input_data, manager)
+                stacked_features = self._get_base_model_probs_from_manager(
+                    input_data, manager
+                )
 
-                prediction = self.model.predict(stacked_features)  # class indices, shape (1,)
+                prediction = self.model.predict(
+                    stacked_features
+                )  # class indices, shape (1,)
                 probs = None
 
                 if hasattr(self.model, "predict_proba"):
-                    probs = self.model.predict_proba(stacked_features)  # (1, num_classes)
+                    probs = self.model.predict_proba(
+                        stacked_features
+                    )  # (1, num_classes)
 
                 # Store last output as tuple (prediction, probs)
                 self.last_output = (prediction, probs)
@@ -138,11 +164,10 @@ class PlantModel:
                 # Always return both, so caller can decide how to use
                 return prediction, probs
 
-
             else:
                 raise ValueError("Unsupported model type")
 
- 
-
         # Fallback: unsupported input
-        raise ValueError("Unsupported input_data type for predict(). Pass a PIL.Image, torch.Tensor or numpy array.")
+        raise ValueError(
+            "Unsupported input_data type for predict(). Pass a PIL.Image, torch.Tensor or numpy array."
+        )

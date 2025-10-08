@@ -132,16 +132,22 @@ export function ConfirmEmailChange() {
       console.log("Current resend count:", res.resend_count);
       toast.success(res.message);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle specific backend errors
-      if (error.message.includes("Resend limit reached")) {
-        toast.error("Resend limit reached. Please restart the email change process.");
-        navigate("/profile");
-      } else if (error.message.includes("OTP token not found")) {
-        toast.error("OTP token not found or expired. Redirecting to profile...");
-        navigate("/profile");
+      // Handle specific backend errors
+      if (error instanceof Error) {
+        if (error.message.includes("Resend limit reached")) {
+          toast.error("Resend limit reached. Please restart the email change process.");
+          navigate("/profile");
+        } else if (error.message.includes("OTP token not found")) {
+          toast.error("OTP token not found or expired. Redirecting to profile...");
+          navigate("/profile");
+        } else {
+          console.error("Error resending OTP:", error);
+          toast.error("Failed to resend OTP. Please try again later.");
+        }
       } else {
-        console.error("Error resending OTP:", error);
+        console.error("Unknown error resending OTP:", error);
         toast.error("Failed to resend OTP. Please try again later.");
       }
     } finally {

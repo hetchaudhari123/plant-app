@@ -14,10 +14,12 @@ from schemas.UserDashboardResponseSchema import UserDashboardResponse
 from collections import Counter
 from pymongo import ReturnDocument
 from passlib.context import CryptContext
-from datetime import datetime, timedelta, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 
-async def update_profile_name(user_id: str, first_name: str = None, last_name: str = None):
+async def update_profile_name(
+    user_id: str, first_name: str = None, last_name: str = None
+):
     """
     Update a user's first name and/or last name.
     Only update profile_pic_url if it is still the default DiceBear avatar.
@@ -42,7 +44,6 @@ async def update_profile_name(user_id: str, first_name: str = None, last_name: s
         new_first = update_fields.get("first_name", user["first_name"])
         new_last = update_fields.get("last_name", user["last_name"])
 
-
         # Update profile picture only if user has DiceBear avatar
         if "api.dicebear.com" in user.get("profile_pic_url", ""):
             update_fields["profile_pic_url"] = (
@@ -56,7 +57,7 @@ async def update_profile_name(user_id: str, first_name: str = None, last_name: s
     await db_conn.users_collection.find_one_and_update(
         {"id": user_id},
         {"$set": update_fields},
-        return_document=True  # returns the updated document
+        return_document=True,  # returns the updated document
     )
 
 
@@ -74,7 +75,7 @@ async def delete_account(user_id: str, password: str, response: Response):
     # 2) Verify password
     if "password_hash" not in user:
         raise HTTPException(status_code=400, detail="User account has no password set")
-    
+
     # Check if the provided password matches the stored hash
     if not pwd_context.verify(password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Incorrect password")
@@ -92,9 +93,6 @@ async def delete_account(user_id: str, password: str, response: Response):
     response.delete_cookie("refresh_token")
 
 
-
-
-
 async def update_profile_picture(user_id: str, file: UploadFile = File(...)):
     # 1) Check if user exists
     user = await db_conn.users_collection.find_one({"id": user_id})
@@ -104,22 +102,24 @@ async def update_profile_picture(user_id: str, file: UploadFile = File(...)):
 
     # 2) Upload to Cloudinary
     try:
-        file.file.seek(0)  
+        file.file.seek(0)
         upload_result = cloudinary.uploader.upload(
             file.file,
             folder="plant_app/profile_pics",
             overwrite=True,
-            resource_type="image"
+            resource_type="image",
         )
         new_pic_url = upload_result["secure_url"]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Cloudinary upload failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Cloudinary upload failed: {str(e)}"
+        )
 
     # 3) Update backend
     update_result = await db_conn.users_collection.find_one_and_update(
         {"id": user_id},
         {"$set": {"profile_pic_url": new_pic_url}},
-        return_document=True  # returns the updated document
+        return_document=True,  # returns the updated document
     )
     if not update_result or "id" not in update_result:
         raise HTTPException(status_code=400, detail="Profile picture update failed")
@@ -128,17 +128,14 @@ async def update_profile_picture(user_id: str, file: UploadFile = File(...)):
     return {
         "message": "Profile picture updated successfully",
         "user_id": user_id,
-        "new_pic_url": new_pic_url
+        "new_pic_url": new_pic_url,
     }
-
-
 
 
 async def request_email_change(user_id: str, new_email: str, current_password: str):
     """
     Request email change by validating password and sending OTP to new email.
     """
-
 
     # 0) Delete any existing OTPs for this user and purpose
     await db_conn.otps_collection.delete_many({"user_id": user_id})
@@ -159,18 +156,18 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
         "user_id": user_id,
         "email": new_email,
         "otp": otp_code,
-        "purpose":"email_change",
+        "purpose": "email_change",
         "created_at": datetime.now(timezone.utc),
-        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
+        "expires_at": datetime.now(timezone.utc)
+        + timedelta(minutes=settings.OTP_EXPIRE_MINUTES),
     }
 
     await db_conn.otps_collection.insert_one(otp_entry)
 
-
     # 1) Set up Jinja2 environment (pointing to your templates folder)
     env = Environment(
         loader=FileSystemLoader("templates"),
-        autoescape=select_autoescape(["html", "xml"])
+        autoescape=select_autoescape(["html", "xml"]),
     )
 
     # 2) Load the template
@@ -180,33 +177,31 @@ async def request_email_change(user_id: str, new_email: str, current_password: s
     body = template.render(
         display_name=user.get("first_name", "User"),
         otp=otp_code,
-        expiry=settings.OTP_EXPIRE_MINUTES,  
+        expiry=settings.OTP_EXPIRE_MINUTES,
     )
 
     # 7) Send OTP email (HTML)
     subject = "Confirm Your Email Change 🌱"
-    await send_email(
-        to_email=new_email,
-        subject=subject,
-        body=body,
-        is_html=True
-    )
+    await send_email(to_email=new_email, subject=subject, body=body, is_html=True)
 
 
-
-async def confirm_email_change(user_id: str, old_email: str, new_email: str, otp_code: str):
+async def confirm_email_change(
+    user_id: str, old_email: str, new_email: str, otp_code: str
+):
     """
     Confirm the email change by validating the OTP (with old email)
     and updating the user's email to the new one.
     """
 
     # 1) Find OTP entry using old_email (not new_email)
-    otp_entry = await db_conn.otps_collection.find_one({
-        "user_id": user_id,
-        "email": new_email,
-        "otp": otp_code,
-        "purpose": "email_change"
-    })
+    otp_entry = await db_conn.otps_collection.find_one(
+        {
+            "user_id": user_id,
+            "email": new_email,
+            "otp": otp_code,
+            "purpose": "email_change",
+        }
+    )
 
     if not otp_entry:
         raise HTTPException(status_code=400, detail="Invalid or expired OTP")
@@ -219,7 +214,7 @@ async def confirm_email_change(user_id: str, old_email: str, new_email: str, otp
     result = await db_conn.users_collection.find_one_and_update(
         {"id": user_id, "email": old_email},  # also ensure the user had old_email
         {"$set": update_fields},
-        return_document=True  # returns the updated document
+        return_document=True,  # returns the updated document
     )
 
     if not result or "id" not in result:
@@ -228,14 +223,12 @@ async def confirm_email_change(user_id: str, old_email: str, new_email: str, otp
     return {"message": "Email updated successfully", "new_email": new_email}
 
 
-
-
 async def get_user_by_id(user_id: str) -> dict:
     """
     Fetch user details by ID from the database and remove sensitive fields.
     """
     user_doc = await db_conn.users_collection.find_one({"id": user_id})
-    
+
     if not user_doc:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -243,10 +236,16 @@ async def get_user_by_id(user_id: str) -> dict:
     user = User(**user_doc)
 
     # Prepare safe dictionary for response
-    user_dict = user.model_dump(exclude={"password_hash", "reset_token", "reset_token_expires_at", "token_version"})
-    
-    return user_dict
+    user_dict = user.model_dump(
+        exclude={
+            "password_hash",
+            "reset_token",
+            "reset_token_expires_at",
+            "token_version",
+        }
+    )
 
+    return user_dict
 
 
 async def get_user_details(user_id: str) -> dict:
@@ -254,7 +253,7 @@ async def get_user_details(user_id: str) -> dict:
     Fetch user details by ID from the database and remove sensitive fields.
     """
     user_doc = await db_conn.users_collection.find_one({"id": user_id})
-    
+
     if not user_doc:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -262,10 +261,16 @@ async def get_user_details(user_id: str) -> dict:
     user = User(**user_doc)
 
     # Prepare safe dictionary for response
-    user_dict = user.model_dump(exclude={"password_hash", "reset_token", "reset_token_expires_at", "token_version"})
-    
-    return user_dict
+    user_dict = user.model_dump(
+        exclude={
+            "password_hash",
+            "reset_token",
+            "reset_token_expires_at",
+            "token_version",
+        }
+    )
 
+    return user_dict
 
 
 async def get_user_dashboard(user_id: str) -> UserDashboardResponse:
@@ -281,32 +286,33 @@ async def get_user_dashboard(user_id: str) -> UserDashboardResponse:
     user = User(**user_doc)
 
     # --- Fetch predictions ---
-    prediction_docs = await db_conn.predictions_collection.find({"user_id": user_id}).to_list(length=None)
+    prediction_docs = await db_conn.predictions_collection.find(
+        {"user_id": user_id}
+    ).to_list(length=None)
     predictions = [Prediction(**doc) for doc in prediction_docs]
 
     # --- Calculate stats ---
     total_analyses = len(predictions)
 
     issues_detected = sum(
-        1 for p in predictions
-        if p.disease and p.disease.lower() != "healthy"
+        1 for p in predictions if p.disease and p.disease.lower() != "healthy"
     )
 
     healthy_crops = sum(
-        1 for p in predictions
-        if p.disease and p.disease.lower() == "healthy"
+        1 for p in predictions if p.disease and p.disease.lower() == "healthy"
     )
 
-    crops_monitored_count = len(set(p.crop for p in predictions if p.crop))  # count of unique crops
-    
+    crops_monitored_count = len(
+        set(p.crop for p in predictions if p.crop)
+    )  # count of unique crops
+
     return UserDashboardResponse(
         user_id=user.id,
         total_analyses=total_analyses,
         issues_detected=issues_detected,
         healthy_crops=healthy_crops,
-        crops_monitored=crops_monitored_count,  
+        crops_monitored=crops_monitored_count,
     )
-
 
 
 async def get_primary_crops_for_user(user_id: str, top_n: int = 3) -> List[str]:
@@ -314,7 +320,9 @@ async def get_primary_crops_for_user(user_id: str, top_n: int = 3) -> List[str]:
     Fetch predictions from DB for the given user and return top N primary crops.
     """
     # Fetch all predictions for this user
-    prediction_docs = await db_conn.predictions_collection.find({"user_id": user_id}).to_list(length=None)
+    prediction_docs = await db_conn.predictions_collection.find(
+        {"user_id": user_id}
+    ).to_list(length=None)
     predictions = [Prediction(**doc) for doc in prediction_docs]
 
     # Filter out predictions with empty crop
@@ -326,8 +334,6 @@ async def get_primary_crops_for_user(user_id: str, top_n: int = 3) -> List[str]:
     # Get top N crops
     primary_crops = [crop for crop, _ in crop_counts.most_common(top_n)]
     return primary_crops
-
-
 
 
 async def update_farm_size(user_id: str, farm_size: str) -> dict:
@@ -345,13 +351,10 @@ async def update_farm_size(user_id: str, farm_size: str) -> dict:
     updated_user = await db_conn.users_collection.find_one_and_update(
         {"id": user_id},
         {"$set": {"farm_size": farm_size}},
-        return_document=ReturnDocument.AFTER  # returns the updated document
+        return_document=ReturnDocument.AFTER,  # returns the updated document
     )
 
     if not updated_user:
         raise ValueError(f"User with id {user_id} not found")
 
     return updated_user
-
-
-

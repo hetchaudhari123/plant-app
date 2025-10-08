@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { resetPassword } from '../../services/authService';
 import { toast } from 'sonner';
+import { AxiosError } from "axios";
 
 export function ResetPassword() {
   const navigate = useNavigate();
@@ -21,10 +22,7 @@ export function ResetPassword() {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const validatePassword = (password: string) => {
-    const errors: string[] = [];
-    return errors;
-  };
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -48,11 +46,7 @@ export function ResetPassword() {
 
     const newErrors: { [key: string]: string } = {};
 
-    // Validate password
-    const passwordErrors = validatePassword(formData.password);
-    if (passwordErrors.length > 0) {
-      newErrors.password = passwordErrors.join(', ');
-    }
+    
 
     // Validate confirm password
     if (formData.password !== formData.confirmPassword) {
@@ -80,25 +74,36 @@ export function ResetPassword() {
         navigate('/login');
       }, 2000);
 
-    } catch (error: any) {
-      console.error('Error resetting password:', error);
-      const errorMessage = error.response?.data?.detail || 'Failed to reset password. Please try again.';
+    }
+    catch (error: unknown) {
+      console.error("Error resetting password:", error);
+
+      let errorMessage = "Failed to reset password. Please try again.";
+
+      // Safely check for AxiosError
+      if (error instanceof AxiosError) {
+        errorMessage = error.response?.data?.detail || errorMessage;
+      } else if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      }
+
       toast.error(errorMessage);
 
       // Handle specific error cases
-      if (errorMessage.includes('expired') || errorMessage.includes('Invalid reset token')) {
+      if (errorMessage.toLowerCase().includes("expired") || errorMessage.includes("Invalid reset token")) {
         setErrors({
-          password: 'This reset link has expired or is invalid. Please request a new one.'
+          password: "This reset link has expired or is invalid. Please request a new one."
         });
         setTimeout(() => {
-          navigate('/forgot-password');
+          navigate("/forgot-password");
         }, 3000);
       } else {
         setErrors({
           password: errorMessage
         });
       }
-    } finally {
+    }
+    finally {
       setIsLoading(false);
     }
   };
@@ -135,8 +140,7 @@ export function ResetPassword() {
     );
   }
 
-  const passwordErrors = validatePassword(formData.password);
-  const isPasswordValid = passwordErrors.length === 0 && formData.password.length > 0;
+  const isPasswordValid = true;
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

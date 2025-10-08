@@ -1,9 +1,10 @@
+
 services:
   # -------------------------
   # App Service
   # -------------------------
   app_service:
-    image: ${APP_NAME}_app:${GIT_COMMIT}
+    build: ./backend/app_service
     container_name: app_service
     ports:
       - "8000:8000"
@@ -13,17 +14,20 @@ services:
   # Model Service
   # -------------------------
   model_service:
-    image: ${APP_NAME}_model:${GIT_COMMIT}
+    build: ./backend/model_service
     container_name: model_service
     ports:
       - "8002:8002"
     env_file: ./backend/model_service/.env
-
   # -------------------------
   # Frontend (Vite React + Nginx)
   # -------------------------
   frontend:
-    image: ${APP_NAME}_frontend:${GIT_COMMIT}
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+        VITE_MODEL_API_URL: http://localhost:8002
     container_name: frontend_service
     ports:
       - "3000:80"

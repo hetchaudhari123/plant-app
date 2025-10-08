@@ -11,15 +11,12 @@ import { Profile } from './components/pages/profile';
 import OpenRoute from './components/OpenRoute';
 import PrivateRoute from './components/PrivateRoute';
 import AppInitializer from './AppInitializer';
-import { useSelector } from 'react-redux';
-import { RootState } from './redux/store';
-import { Loading } from './components/ui/loading';
+
 import { ConfirmEmailChange } from './components/confirm-email-change';
 import { ConfirmOtpForSignup } from './components/confirm-otp-for-signup';
 import { CropsCoverage } from './components/crops-coverage';
 
 export default function App() {
-  const isLoading = useSelector((state: RootState) => state.auth.loading);
 
 
   return (

@@ -1,6 +1,7 @@
 from typing import Any
 from .plant_model import PlantModel
 
+
 class ModelManager:
     def __init__(self):
         self.models = {}
@@ -15,7 +16,11 @@ class ModelManager:
         model = self.models[model_name]
 
         # For ensemble models, pass the manager so base model predictions can be collected
-        if model.model_type == "sklearn" and hasattr(model, "model_order") and model.model_order:
+        if (
+            model.model_type == "sklearn"
+            and hasattr(model, "model_order")
+            and model.model_order
+        ):
             return model.predict(input_data, manager=self)
         else:
             # For PyTorch models or sklearn without stacking, manager is not needed

@@ -38,7 +38,7 @@ export const changePassword = async ({ old_password, new_password, confirm_passw
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error changing password:", error);
     throw error;
   }
@@ -55,7 +55,7 @@ export const logoutUser = async () => {
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error logging out user:", error);
     throw error;
   }
@@ -87,7 +87,7 @@ export const requestSignupOtp = async (data: SignupRequestOtpRequest) => {
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error requesting signup OTP:", error);
     throw error;
   }
@@ -124,7 +124,7 @@ export const verifySignupOtp = async (data: VerifySignupOtpRequest): Promise<Ver
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error verifying signup OTP:", error);
     throw error;
   }
@@ -154,7 +154,7 @@ export const resendSignupOtp = async (data: ResendSignupOtpRequest): Promise<Res
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error resending signup OTP:", error);
     throw error;
   }
@@ -180,7 +180,7 @@ export const requestPasswordReset = async (email: string) => {
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error requesting password reset:", error);
     throw error;
   }
@@ -208,7 +208,7 @@ export const resetPassword = async (data: ResetPasswordRequest) => {
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error resetting password:", error);
     throw error;
   }

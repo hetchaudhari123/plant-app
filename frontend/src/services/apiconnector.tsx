@@ -7,15 +7,20 @@ import store from "../redux/store";
 
 
 // Shared response interceptor for 401 handling
-const responseInterceptor = async (error: any) => {
-  if (error.response?.status === 401) {
-    try {
-      await logout();
-      store.dispatch(setUser(null));
-    } catch (logoutError) {
-      console.error("Error during automatic logout:", logoutError);
+const responseInterceptor = async (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    if (error.response?.status === 401) {
+      try {
+        await logout();
+        store.dispatch(setUser(null));
+      } catch (logoutError) {
+        console.error("Error during automatic logout:", logoutError);
+      }
     }
+  } else {
+    console.error("Unknown error type caught in interceptor:", error);
   }
+
   return Promise.reject(error);
 };
 
@@ -48,18 +53,8 @@ export const apiConnector = async (
   params: Record<string, any> = {},
   instance = appServiceInstance  // Default to app service
 ) => {
-  try {
-    const res = await instance({
-      method,
-      url,
-      data: bodyData,
-      headers,
-      params,
-    });
-    return res.data;
-  } catch (err) {
-    throw err;
-  }
+  const res = await instance({ method, url, data: bodyData, headers, params });
+  return res.data;
 };
 
 // Export instances for direct use

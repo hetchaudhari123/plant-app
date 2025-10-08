@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     MONGO_URI: str
     MONGO_DB_NAME: str
@@ -23,12 +24,14 @@ class Settings(BaseSettings):
     MAIL_PASS: str
 
     BACKEND_DB_URL: str
-    
+
     BACKEND_MODEL_URL: str
 
     FRONTEND_URL: str
     OTP_TOKEN_EXPIRE_MINUTES: int
+
     class Config:
         env_file = ".env"
+
 
 settings = Settings()

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, Leaf, ChevronDown } from 'lucide-react';
+import { Search, Filter, Leaf } from 'lucide-react';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';

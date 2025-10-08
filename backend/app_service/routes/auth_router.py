@@ -1,6 +1,19 @@
-from fastapi import APIRouter, Response, Body, Depends, Request, HTTPException, status
+from fastapi import APIRouter, Response, Depends, Request, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
-from services.auth_service import send_otp, signup_user, login_user, change_password, reset_password, reset_password_token, refresh_access_token, logout_user, generate_otp_token, resend_email_change_otp, request_signup_otp, resend_signup_otp
+from services.auth_service import (
+    send_otp,
+    signup_user,
+    login_user,
+    change_password,
+    reset_password,
+    reset_password_token,
+    refresh_access_token,
+    logout_user,
+    generate_otp_token,
+    resend_email_change_otp,
+    request_signup_otp,
+    resend_signup_otp,
+)
 from dependencies.auth import require_user
 
 router = APIRouter()
@@ -10,28 +23,18 @@ router = APIRouter()
 # --------------------
 
 
-class OTPRequest(BaseModel):
-    email: EmailStr
-
-
 class SignupSchema(BaseModel):
     email: EmailStr
     first_name: str
     last_name: str
     password: str
-    confirm_password: str  
+    confirm_password: str
     otp_code: str
+
 
 class LoginSchema(BaseModel):
     email: EmailStr
     password: str
-
-class ChangePasswordSchema(BaseModel):
-    old_password: str
-    new_password: str
-    confirm_password: str
-
-
 
 
 class ResetPasswordSchema(BaseModel):
@@ -39,9 +42,12 @@ class ResetPasswordSchema(BaseModel):
     password: str
     confirm_password: str
 
+
 # --------------------
 # Routes
 # --------------------
+class OTPRequest(BaseModel):
+    email: EmailStr
 
 
 @router.post("/send-otp")
@@ -54,21 +60,19 @@ class VerifySignupOtpSchema(BaseModel):
     email: EmailStr
     otp_code: str = Field(..., min_length=6, max_length=6)
 
+
 @router.post("/signup/verify-otp", summary="Verify OTP and complete signup")
 async def route_verify_signup_otp(payload: VerifySignupOtpSchema):
-    user = await signup_user(
-        email=payload.email,
-        otp_code=payload.otp_code
-    )
-    return {
-        "message": "Account created successfully",
-        "user": user
-    }
+    user = await signup_user(email=payload.email, otp_code=payload.otp_code)
+    return {"message": "Account created successfully", "user": user}
+
 
 @router.post("/login", summary="Login user and return access token")
 async def route_login(payload: LoginSchema, response: Response):
     try:
-        user = await login_user(email=payload.email, password=payload.password, response=response)
+        user = await login_user(
+            email=payload.email, password=payload.password, response=response
+        )
         return {
             "message": "Login successful",
             "user": {
@@ -76,40 +80,44 @@ async def route_login(payload: LoginSchema, response: Response):
                 "email": user["email"],
                 "first_name": user.get("first_name"),
                 "last_name": user.get("last_name"),
-                "profile_pic_url": user.get("profile_pic_url")
-            }
+                "profile_pic_url": user.get("profile_pic_url"),
+            },
         }
 
     except ValueError as ve:
         # Example: invalid credentials
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(ve)
-        )
-    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(ve))
+    except Exception:
         # Unexpected server errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred. Please try again later."
+            detail="An unexpected error occurred. Please try again later.",
         )
 
 
+class ChangePasswordSchema(BaseModel):
+    old_password: str
+    new_password: str
+    confirm_password: str
+
+
 @router.post("/change-password", summary="Change password for logged-in user")
-async def route_change_password(payload: ChangePasswordSchema, response: Response, user = Depends(require_user)):
+async def route_change_password(
+    payload: ChangePasswordSchema, response: Response, user=Depends(require_user)
+):
     await change_password(
         user_id=user.id,
         old_password=payload.old_password,
         new_password=payload.new_password,
         confirm_password=payload.confirm_password,
-        response=response
+        response=response,
     )
     return {"message": "Password changed successfully"}
 
 
-
-
 class ResetPasswordTokenSchema(BaseModel):
     email: EmailStr
+
 
 @router.post("/reset-password-token", summary="Generate password reset token")
 async def route_reset_password_token(payload: ResetPasswordTokenSchema):
@@ -122,7 +130,7 @@ async def route_reset_password(payload: ResetPasswordSchema):
     await reset_password(
         token=payload.token,
         password=payload.password,
-        confirm_password=payload.confirm_password
+        confirm_password=payload.confirm_password,
     )
     return {"message": "Password has been reset successfully"}
 
@@ -144,28 +152,30 @@ async def route_logout(response: Response):
     await logout_user(response)
     return {"message": "Logged out successfully"}
 
+
 class OTPTokenRequest(BaseModel):
-    email: EmailStr 
+    email: EmailStr
     new_email: EmailStr
 
+
 @router.post("/otp-token", summary="Generate OTP token for email change")
-async def route_generate_otp_token(payload: OTPTokenRequest, user = Depends(require_user)):
+async def route_generate_otp_token(
+    payload: OTPTokenRequest, user=Depends(require_user)
+):
     """
     Generate an OTP token for a given user.
     This token can later be used to resend OTPs without requiring the password again.
     """
-    return await generate_otp_token(user_id=user.id, email=payload.email, new_email=payload.new_email)
-
-
-
-
+    return await generate_otp_token(
+        user_id=user.id, email=payload.email, new_email=payload.new_email
+    )
 
 
 @router.post("/otp-token/resend-otp", summary="Resend OTP for email change")
 async def route_resend_otp(user=Depends(require_user)):
     """
     Resend OTP for email change.
-    Backend finds the user's OTP token, increments resend_count, 
+    Backend finds the user's OTP token, increments resend_count,
     and sends a new OTP.
     """
     return await resend_email_change_otp(user_id=user.id)
@@ -177,24 +187,22 @@ class SignupRequestOtpSchema(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=50)
     password: str = Field(..., min_length=6)
 
-    
-
 
 @router.post("/signup/request-otp", summary="Request OTP for signup")
 async def route_request_signup_otp(payload: SignupRequestOtpSchema):
-    
-    
+
     result = await request_signup_otp(
         email=payload.email,
         first_name=payload.first_name,
         last_name=payload.last_name,
-        password=payload.password
+        password=payload.password,
     )
     return result
 
 
 class ResendSignupOtpSchema(BaseModel):
     email: EmailStr
+
 
 @router.post("/signup/resend-otp", summary="Resend OTP for signup")
 async def route_resend_signup_otp(payload: ResendSignupOtpSchema):

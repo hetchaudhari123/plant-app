@@ -91,9 +91,9 @@ export function Login() {
           dispatch(setLoading(false));
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error:", error);
-      toast.error(error?.message || "Something went wrong!");
+      toast.error(error instanceof Error ? error.message : "Something went wrong!");
     }
   };
 

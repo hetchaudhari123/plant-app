@@ -27,9 +27,14 @@ export function ForgotPassword() {
       await requestPasswordReset(email);
       setIsSubmitted(true);
       toast.success('Password reset link sent to your email');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error requesting password reset:', error);
-      toast.error(error.response?.data?.detail || 'Failed to send reset link. Please try again.');
+      if (typeof error === 'object' && error !== null && 'response' in error) {
+        const err = error as { response?: { data?: { detail?: string } } };
+        toast.error(err.response?.data?.detail || 'Failed to send reset link. Please try again.');
+      } else {
+        toast.error('Failed to send reset link. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -16,7 +16,7 @@ import { toast } from "sonner";
 interface PredictionItem {
   crop: string;
   disease: string;
-  confidence: number; 
+  confidence: number;
   label: string;
   class_idx: number;
 }
@@ -48,17 +48,17 @@ export function ImageUpload() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Define the Model type
   interface Model {
     id: string;
     name: string;
     description: string;
-    accuracy: number; 
-    alias: string; 
+    accuracy: number;
+    alias: string;
   }
   // Inside your component:
-  const [models, setModels] = useState<Model[]>([]); 
+  const [models, setModels] = useState<Model[]>([]);
   const formatConfidence = (confidence: number): string => {
     const percentage = confidence * 100;
     if (percentage < 0.01) {
@@ -72,7 +72,7 @@ export function ImageUpload() {
       try {
         const response = await getAllModels();
 
-        
+
 
         // Extract name, description, and id from response
         const formattedModels = response.models.map((model: any) => ({
@@ -80,7 +80,7 @@ export function ImageUpload() {
           name: model.name,
           description: model.description,
           accuracy: model.accuracy,
-          alias: model.alias, 
+          alias: model.alias,
         }));
 
         console.log('Formatted models:', formattedModels);
@@ -88,7 +88,7 @@ export function ImageUpload() {
       } catch (err: any) {
         console.error('Failed to fetch models:', err);
         setModels([]); // Clear models on error
-      } 
+      }
     };
 
     fetchModels();
@@ -139,18 +139,24 @@ export function ImageUpload() {
       setAnalysisResult(response);
       toast.success('Image analyzed successfully!');
 
-    
+
       console.log('Analysis Result:', response);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Analysis failed:', error);
 
-    
-      const errorMessage =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to analyze image. Please try again.';
+      let errorMessage = 'Failed to analyze image. Please try again.';
+
+      if (typeof error === 'object' && error !== null) {
+        if ('response' in error) {
+          const err = error as { response?: { data?: { detail?: string; message?: string } } };
+          errorMessage = err.response?.data?.detail ||
+            err.response?.data?.message ||
+            errorMessage;
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+      }
 
       toast.error(errorMessage);
       setAnalysisResult(null);

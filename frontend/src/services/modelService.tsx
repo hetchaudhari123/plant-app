@@ -20,7 +20,7 @@ export const getAllModels = async (
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching models:", error);
     throw error;
   }
@@ -46,7 +46,7 @@ export const createPrediction = async (
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating prediction:", error);
     throw error;
   }
@@ -116,7 +116,7 @@ export const getUserPredictions = async (
       skip: response.skip,
       limit: response.limit,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching user predictions:", error);
     throw error;
   }
@@ -159,7 +159,7 @@ export const deletePrediction = async (
       message: response.message,
       prediction_id: response.prediction_id,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error deleting prediction:", error);
     throw error;
   }
