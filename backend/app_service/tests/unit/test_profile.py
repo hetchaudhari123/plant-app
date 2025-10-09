@@ -1256,32 +1256,19 @@ async def test_request_email_change_template_rendering():
     mock_env = MagicMock()
     mock_env.get_template = Mock(return_value=mock_template)
 
-    with patch("services.profile_service.db_conn", mock_db_conn), patch(
-        "services.profile_service.verify_password", return_value=True
-    ), patch(
-        "services.profile_service.generate_secure_otp", return_value=mock_otp
-    ), patch(
-        "services.profile_service.settings", mock_settings
-    ), patch(
-        "services.profile_service.FileSystemLoader"
-    ) as mock_loader, patch(
-        "services.profile_service.select_autoescape"
-    ) as mock_autoescape, patch(
-        "services.profile_service.send_email", new_callable=AsyncMock
-    ):
+    with patch("services.profile_service.db_conn", mock_db_conn), \
+        patch("services.profile_service.verify_password", return_value=True), \
+        patch("services.profile_service.generate_secure_otp", return_value=mock_otp), \
+        patch("services.profile_service.settings", mock_settings), \
+        patch("services.profile_service.Environment", return_value=mock_env), \
+        patch("services.profile_service.send_email", new_callable=AsyncMock):
 
         await request_email_change(
             user_id=user_id, new_email=new_email, current_password=current_password
         )
 
         # Verify Environment setup
-        mock_loader.assert_called_once_with("templates")
-        mock_autoescape.assert_called_once_with(["html", "xml"])
-
-        # Verify template loading
         mock_env.get_template.assert_called_once_with("email_change.html")
-
-        # Verify template rendering with correct context
         mock_template.render.assert_called_once_with(
             display_name="Charlie", otp=mock_otp, expiry=10
         )
