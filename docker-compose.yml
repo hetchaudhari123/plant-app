@@ -3,8 +3,10 @@ services:
   # App Service
   # -------------------------
   app_service:
-    image: ${APP_NAME}_app:${GIT_COMMIT}
-    container_name: app_service
+    build:
+      context: ./backend/app_service
+    image: agri-vision/backend/app_service:latest
+    container_name: agri_vision_app_service
     ports:
       - "8000:8000"
     env_file: ./backend/app_service/.env
@@ -13,8 +15,10 @@ services:
   # Model Service
   # -------------------------
   model_service:
-    image: ${APP_NAME}_model:${GIT_COMMIT}
-    container_name: model_service
+    build:
+      context: ./backend/model_service
+    image: agri-vision/backend/model_service:latest
+    container_name: agri_vision_model_service
     ports:
       - "8002:8002"
     env_file: ./backend/model_service/.env
@@ -23,8 +27,13 @@ services:
   # Frontend (Vite React + Nginx)
   # -------------------------
   frontend:
-    image: ${APP_NAME}_frontend:${GIT_COMMIT}
-    container_name: frontend_service
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api/v1
+        VITE_MODEL_API_URL: /model/v1
+    image: agri-vision/frontend:latest
+    container_name: agri_vision_frontend_service
     ports:
       - "3000:80"
     depends_on:

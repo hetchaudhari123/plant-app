@@ -1,2 +1,33 @@
 .env
 *.env
+build/
+dist/
+wheels/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+*.egg-info
+__pycache__/
+
+# Git
+.git
+.gitignore
+
+# Python artifacts
+.venv/
+venv/
+env/
+
+# IDE / Editor config
+.vscode/
+.idea/
+
+# Docker specific
+Dockerfile
+.dockerignore
+
+# Documentation
+README.md

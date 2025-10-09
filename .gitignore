@@ -3,6 +3,8 @@ backend/model_service/saved_models/*.pth
 backend/model_service/saved_models/*.pkl
 backend/model_service/.env
 backend/db_service/.env
+backend/app_service/.env*
+backend/model_service/.env*
 backend/app_service/.env
 backend/app_service/.venv
 backend/model_service/.venv
@@ -12,6 +14,7 @@ backend/model_service/.venv
 backend/app_service/.venv
 frontend/.env
 frontend/node_modules
+frontend/.env*
 backend/app_service/.coverage
 backend/app_service/.python-version
 backend/app_service/pyproject.toml

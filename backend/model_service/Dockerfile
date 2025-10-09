@@ -1,46 +1,48 @@
-# ---- Stage 1: Builder ----
-FROM python:3.11-slim AS builder
+# ---- Stage 1: Build dependencies ----
+FROM python:3.11.2-slim AS builder
+
+# Set working directory
+WORKDIR /app
+
+# Upgrade pip, setuptools, wheel
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements and filter out unwanted packages
+COPY requirements.txt .
+
+# Filter out torch and pywin packages, then build wheels with a timeout
+RUN grep -aiv -E 'pywin|torch|torchvision|torchaudio' requirements.txt > filtered_requirements.txt && \
+    pip wheel --no-cache-dir --wheel-dir /app/wheels -r filtered_requirements.txt --timeout=600
+
+# ---- Stage 2: Final image ----
+FROM python:3.11.2-slim
 
 WORKDIR /app
 
-# Install build dependencies (only for wheels)
-# RUN apt-get update && \
-#     apt-get install -y --no-install-recommends build-essential gcc g++ && \
-#     rm -rf /var/lib/apt/lists/*
+# Install minimal runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --upgrade pip setuptools wheel
+# Install PyTorch CPU directly with a timeout
+RUN pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cpu --timeout=60
 
-# Copy requirements (split torch separately to control install)
-COPY requirements_without_torch.txt .
+# Copy pre-built wheels from builder
+COPY --from=builder /app/wheels /wheels
 
-# Build wheels for non-torch deps
-RUN pip wheel --no-cache-dir --wheel-dir /wheels_others -r requirements_without_torch.txt
+# Install dependencies from wheels and clean up in the same layer
+RUN pip install --no-cache-dir /wheels/* --timeout=600 && \
+    rm -rf /wheels ~/.cache/pip
 
-# ---- Stage 2: Final Image ----
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# Only minimal runtime deps (needed by torch for OpenMP support)
-# RUN apt-get update && \
-#     apt-get install -y --no-install-recommends libgomp1 && \
-#     rm -rf /var/lib/apt/lists/*
-
-# Install PyTorch CPU directly (lighter than building wheels)
-RUN pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cpu
-
-# Copy wheels for other deps
-COPY --from=builder /wheels_others /wheels_others
-
-# Install remaining deps
-RUN pip install --no-cache-dir /wheels_others/* && rm -rf /wheels_others ~/.cache/pip
-
-# Copy app
+# Copy source code
 COPY . .
 
+# Expose port
 EXPOSE 8002
 
-# Use Gunicorn with Uvicorn workers
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4"]
-# CMD gunicorn -k uvicorn.workers.UvicornWorker main:app --bind 0.0.0.0:$PORT --workers 1
+# Run Gunicorn + Uvicorn
+# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4"]
+
+# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4", "--access-logfile", "-", "--error-logfile", "-"]
+
+CMD ["gunicorn","-k", "uvicorn.workers.UvicornWorker","main:app","--bind", "0.0.0.0:8002","--workers", "4","--access-logfile", "-","--error-logfile", "-","--log-level", "debug"]

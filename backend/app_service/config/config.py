@@ -1,5 +1,11 @@
 from pydantic_settings import BaseSettings
+import os
+from dotenv import load_dotenv
 
+load_dotenv(".env")  # this reads the base .env file
+
+env_type = os.getenv("ENV_TYPE", "development").lower()
+env_file = ".env.development" if env_type == "development" else ".env.production"
 
 class Settings(BaseSettings):
     MONGO_URI: str
@@ -31,7 +37,7 @@ class Settings(BaseSettings):
     OTP_TOKEN_EXPIRE_MINUTES: int
 
     class Config:
-        env_file = ".env"
-
+        env_file = env_file  # use the correct env file based on ENV_TYPE
+        extra = "ignore"  # <- allow extra env vars like ENV_TYPE
 
 settings = Settings()

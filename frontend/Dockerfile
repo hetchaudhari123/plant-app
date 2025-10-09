@@ -10,7 +10,7 @@ ARG VITE_MODEL_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_MODEL_API_URL=$VITE_MODEL_API_URL
 
-# Copy package.json and install dependencies
+# Copy package.json and install dependenc   ies
 COPY package*.json ./
 RUN npm install
 

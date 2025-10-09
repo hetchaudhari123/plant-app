@@ -4,9 +4,12 @@ FROM python:3.11.2-slim AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and build wheels
+# Copy requirements and build wheels, filtering out pywin packages
 COPY requirements.txt .
-RUN pip wheel --no-cache-dir --wheel-dir /app/wheels -r requirements.txt
+
+# Run pip wheel with an increased timeout of 60 seconds
+RUN grep -a -iv 'pywin' requirements.txt > filtered_requirements.txt && \
+    pip wheel --no-cache-dir --wheel-dir /app/wheels -r filtered_requirements.txt --timeout=60
 
 # ---- Stage 2: Final image ----
 FROM python:3.11.2-slim
@@ -23,9 +26,14 @@ RUN apt-get update && \
 COPY --from=builder /app/wheels /wheels
 
 # Install dependencies from wheels + gunicorn
-RUN pip install --no-cache /wheels/* 
+# Added timeout here for consistency, though it's less critical when installing from local files
+RUN pip install --no-cache /wheels/* --timeout=600
+
 # Copy source code
 COPY . .
 
 # Run Gunicorn + Uvicorn
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--workers", "4"]
+# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--workers", "4"]
+
+# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--workers", "4", "--access-logfile", "-", "--error-logfile", "-"]
+CMD ["gunicorn","-k", "uvicorn.workers.UvicornWorker","main:app","--bind", "0.0.0.0:8000","--workers", "4","--access-logfile", "-","--error-logfile", "-","--log-level", "debug"]
