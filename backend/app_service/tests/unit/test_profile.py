@@ -1256,12 +1256,17 @@ async def test_request_email_change_template_rendering():
     mock_env = MagicMock()
     mock_env.get_template = Mock(return_value=mock_template)
 
-    with patch("services.profile_service.db_conn", mock_db_conn), \
-        patch("services.profile_service.verify_password", return_value=True), \
-        patch("services.profile_service.generate_secure_otp", return_value=mock_otp), \
-        patch("services.profile_service.settings", mock_settings), \
-        patch("services.profile_service.Environment", return_value=mock_env), \
-        patch("services.profile_service.send_email", new_callable=AsyncMock):
+    with patch("services.profile_service.db_conn", mock_db_conn), patch(
+        "services.profile_service.verify_password", return_value=True
+    ), patch(
+        "services.profile_service.generate_secure_otp", return_value=mock_otp
+    ), patch(
+        "services.profile_service.settings", mock_settings
+    ), patch(
+        "services.profile_service.Environment", return_value=mock_env
+    ), patch(
+        "services.profile_service.send_email", new_callable=AsyncMock
+    ):
 
         await request_email_change(
             user_id=user_id, new_email=new_email, current_password=current_password

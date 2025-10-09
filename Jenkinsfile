@@ -95,8 +95,8 @@ pipeline {
                         echo "🧹 Running Ruff and Black checks on app_service"
                         dir("${APP_SERVICE_DIR}") {
                             bat '''
-                                uvx ruff check .
-                                uvx black --check .
+                                uv run ruff check .
+                                uv run black --check .
                             '''
                         }
                     }
@@ -106,8 +106,8 @@ pipeline {
                         echo "🧹 Running Ruff and Black checks on model_service"
                         dir("${MODEL_SERVICE_DIR}") {
                             bat '''
-                                uvx ruff check .
-                                uvx black --check .
+                                uv run ruff check .
+                                uv run black --check .
                             '''
                         }
                     }
