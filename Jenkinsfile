@@ -160,52 +160,52 @@ pipeline {
             }
         }
 
-        // stage('Build Docker Images') {
-        //     when {
-        //         branch 'main'
-        //     }
-        //     parallel {
-        //         stage('Build App Service Image') {
-        //             steps {
-        //                 echo "🐳 Building Docker image for app_service"
-        //                 dir("${APP_SERVICE_DIR}") {
-        //                     bat "docker build -t %APP_NAME%_app:%GIT_COMMIT% ."
-        //                 }
-        //             }
-        //         }
-        //         stage('Build Model Service Image') {
-        //             steps {
-        //                 echo "🐳 Building Docker image for model_service"
-        //                 dir("${MODEL_SERVICE_DIR}") {
-        //                     bat "docker build -t %APP_NAME%_model:%GIT_COMMIT% ."
-        //                 }
-        //             }
-        //         }
-        //         stage('Build Frontend Image') {
-        //             steps {
-        //                 echo "🐳 Building Docker image for frontend"
-        //                 dir("${FRONTEND_DIR}") {
-        //                     bat "docker build -t %APP_NAME%_frontend:%GIT_COMMIT% ."
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Build Docker Images') {
+            when {
+                branch 'main'
+            }
+            parallel {
+                stage('Build App Service Image') {
+                    steps {
+                        echo "🐳 Building Docker image for app_service"
+                        dir("${APP_SERVICE_DIR}") {
+                            bat "docker build -t %APP_NAME%_app:%GIT_COMMIT% ."
+                        }
+                    }
+                }
+                stage('Build Model Service Image') {
+                    steps {
+                        echo "🐳 Building Docker image for model_service"
+                        dir("${MODEL_SERVICE_DIR}") {
+                            bat "docker build -t %APP_NAME%_model:%GIT_COMMIT% ."
+                        }
+                    }
+                }
+                stage('Build Frontend Image') {
+                    steps {
+                        echo "🐳 Building Docker image for frontend"
+                        dir("${FRONTEND_DIR}") {
+                            bat "docker build -t %APP_NAME%_frontend:%GIT_COMMIT% ."
+                        }
+                    }
+                }
+            }
+        }
 
-        // stage('Deploy') {
-        //     when {
-        //         branch 'main'
-        //     }
-        //     steps {
-        //         echo "🚀 Deploying all services"
-        //         bat '''
-        //             docker-compose -f docker-compose.yml down
-        //             set APP_NAME=%APP_NAME%
-        //             set GIT_COMMIT=%GIT_COMMIT%
-        //             docker-compose -f docker-compose.yml up -d
-        //         '''
-        //     }
-        // }
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "🚀 Deploying all services"
+                bat '''
+                    docker-compose -f docker-compose.yml down
+                    set APP_NAME=%APP_NAME%
+                    set GIT_COMMIT=%GIT_COMMIT%
+                    docker-compose -f docker-compose.yml up -d
+                '''
+            }
+        }
     }
 
     post {
