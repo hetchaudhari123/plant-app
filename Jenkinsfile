@@ -1,4 +1,9 @@
 pipeline {
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '2', daysToKeepStr: '14'))
+        timestamps()
+    }
+
     agent any
 
     environment {
@@ -29,9 +34,11 @@ pipeline {
                     steps {
                         echo "📦 Setting up app_service virtual environment"
                         dir("${APP_SERVICE_DIR}") {
-                            bat 'uv python install 3.11'
-                            bat 'uv init --python 3.11'
-                            bat 'uv add -r requirements.txt'
+                            bat '''
+                                uv python install 3.11
+                                uv init --python 3.11
+                                uv add -r requirements.txt --index-strategy unsafe-best-match
+                            '''
                         }
                     }
                 }
@@ -39,10 +46,12 @@ pipeline {
                     steps {
                         echo "📦 Setting up model_service virtual environment"
                         dir("${MODEL_SERVICE_DIR}") {
-                            bat 'uv python install 3.11'
-                            bat 'uv init --python 3.11'
-                            bat 'uv add -r requirements_without_torch.txt'
-                            bat 'uv pip install torch==2.3.0+cpu torchvision==0.18.0+cpu torchaudio==2.3.0+cpu --index-url https://download.pytorch.org/whl/cpu'
+                            bat '''
+                                uv python install 3.11
+                                uv init --python 3.11
+                                uv add -r requirements_without_torch.txt --index-strategy unsafe-best-match
+                                uv pip install torch==2.3.0+cpu torchvision==0.18.0+cpu torchaudio==2.3.0+cpu --index-url https://download.pytorch.org/whl/cpu
+                            '''
                         }
                     }
                 }
@@ -64,8 +73,10 @@ pipeline {
                     steps {
                         echo "🧹 Running Ruff and Black checks on app_service"
                         dir("${APP_SERVICE_DIR}") {
-                            bat 'uv run ruff check .'
-                            bat 'uv run black --check .'
+                            bat '''
+                                uvx ruff check .
+                                uvx black --check .
+                            '''
                         }
                     }
                 }
@@ -73,8 +84,10 @@ pipeline {
                     steps {
                         echo "🧹 Running Ruff and Black checks on model_service"
                         dir("${MODEL_SERVICE_DIR}") {
-                            bat 'uv run ruff check .'
-                            bat 'uv run black --check .'
+                            bat '''
+                                uvx ruff check .
+                                uvx black --check .
+                            '''
                         }
                     }
                 }
@@ -85,28 +98,34 @@ pipeline {
             steps {
                 echo "🧹 Running ESLint on frontend"
                 dir("${FRONTEND_DIR}") {
-                    bat 'npm run lint || exit 0'
+                    bat 'npm run lint'
                 }
             }
         }
 
         stage('Run Backend Tests') {
-            steps {
-                echo "🧪 Running backend tests with coverage"
-                dir("${BACKEND_DIR}") {
-                    bat 'cd app_service'
-                    bat 'uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:coverage-app.xml --junitxml=test-results-app.xml -v'
-                    bat 'cd ..\\model_service'
-                    bat 'uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:coverage-model.xml --junitxml=test-results-model.xml -v'
+            parallel {
+                stage('Test App Service') {
+                    steps {
+                        echo "🧪 Running app_service tests with coverage"
+                        dir("${APP_SERVICE_DIR}") {
+                            bat '''
+                                if not exist test-results mkdir test-results
+                                uv run pytest tests/unit/ --cov=. --cov-report=xml:test-results/coverage.xml --junitxml=test-results/results.xml -v
+                            '''
+                        }
+                    }
                 }
-            }
-            post {
-                always {
-                    junit "${APP_SERVICE_DIR}\\test-results-app.xml, ${MODEL_SERVICE_DIR}\\test-results-model.xml"
-                    recordCoverage tools: [
-                        [parser: 'COBERTURA', pattern: "${APP_SERVICE_DIR}\\coverage-app.xml"],
-                        [parser: 'COBERTURA', pattern: "${MODEL_SERVICE_DIR}\\coverage-model.xml"]
-                    ]
+                stage('Test Model Service') {
+                    steps {
+                        echo "🧪 Running model_service tests with coverage"
+                        dir("${MODEL_SERVICE_DIR}") {
+                            bat '''
+                                if not exist test-results mkdir test-results
+                                uv run pytest tests/unit/ --cov=. --cov-report=xml:test-results/coverage.xml --junitxml=test-results/results.xml -v
+                            '''
+                        }
+                    }
                 }
             }
         }
@@ -158,25 +177,47 @@ pipeline {
             }
             steps {
                 echo "🚀 Deploying all services"
-                bat 'docker-compose -f docker-compose.yml down'
-                bat 'set APP_NAME=%APP_NAME%'
-                bat 'set GIT_COMMIT=%GIT_COMMIT%'
-                bat 'docker-compose -f docker-compose.yml up -d'
+                bat '''
+                    docker-compose -f docker-compose.yml down
+                    set APP_NAME=%APP_NAME%
+                    set GIT_COMMIT=%GIT_COMMIT%
+                    docker-compose -f docker-compose.yml up -d
+                '''
             }
         }
-
     }
 
     post {
+        always {
+            script {
+                // Collect test results if they exist
+                def appTestResults = findFiles(glob: "${APP_SERVICE_DIR}/test-results/*.xml")
+                def modelTestResults = findFiles(glob: "${MODEL_SERVICE_DIR}/test-results/*.xml")
+                
+                if (appTestResults.length > 0 || modelTestResults.length > 0) {
+                    junit allowEmptyResults: true, testResults: '**/test-results/results.xml'
+                }
+                
+                // Collect coverage reports if they exist
+                def appCoverage = findFiles(glob: "${APP_SERVICE_DIR}/test-results/coverage.xml")
+                def modelCoverage = findFiles(glob: "${MODEL_SERVICE_DIR}/test-results/coverage.xml")
+                
+                if (appCoverage.length > 0 || modelCoverage.length > 0) {
+                    recordCoverage tools: [[parser: 'COBERTURA', pattern: '**/test-results/coverage.xml']]
+                }
+            }
+        }
         success {
             echo "✅ Pipeline completed successfully!"
         }
         failure {
             echo "❌ Build failed! Check the logs for details."
         }
-        always {
+        cleanup {
             echo "🧹 Cleaning up workspace"
             cleanWs()
+            
+            // bat 'docker system prune -af || true'
         }
     }
 }
