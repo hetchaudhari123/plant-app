@@ -863,8 +863,10 @@ async def test_delete_prediction_none_user_id_explicitly():
     )
 
     with patch("services.prediction_service.db_conn", mock_db_conn):
+        # Call the actual function that deletes a prediction
+        await delete_prediction(prediction_id=prediction_id, user_id=None)
 
-        # Verify user_id was not added to filter
+        # Now you can inspect the call args
         find_call_args = mock_db_conn.predictions_collection.find_one.call_args[0][0]
         assert "user_id" not in find_call_args
         assert "prediction_id" in find_call_args
