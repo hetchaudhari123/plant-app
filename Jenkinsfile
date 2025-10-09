@@ -111,7 +111,7 @@ pipeline {
                         dir("${APP_SERVICE_DIR}") {
                             bat '''
                                 if not exist test-results mkdir test-results
-                                uv run pytest tests/unit/ --cov=. --cov-report=xml:test-results/coverage.xml --junitxml=test-results/results.xml -v
+                                uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:test-results/coverage.xml --junitxml=test-results/results.xml -v
                             '''
                         }
                     }
@@ -122,7 +122,7 @@ pipeline {
                         dir("${MODEL_SERVICE_DIR}") {
                             bat '''
                                 if not exist test-results mkdir test-results
-                                uv run pytest tests/unit/ --cov=. --cov-report=xml:test-results/coverage.xml --junitxml=test-results/results.xml -v
+                                uv run python -m pytest tests/unit/ --cov=. --cov-report=xml:test-results/coverage.xml --junitxml=test-results/results.xml -v
                             '''
                         }
                     }
@@ -190,20 +190,15 @@ pipeline {
     post {
         always {
             script {
-                // Collect test results if they exist
-                def appTestResults = findFiles(glob: "${APP_SERVICE_DIR}/test-results/*.xml")
-                def modelTestResults = findFiles(glob: "${MODEL_SERVICE_DIR}/test-results/*.xml")
-                
-                if (appTestResults.length > 0 || modelTestResults.length > 0) {
+                script {
+                    // Always try to publish, allowEmptyResults handles missing files
                     junit allowEmptyResults: true, testResults: '**/test-results/results.xml'
-                }
-                
-                // Collect coverage reports if they exist
-                def appCoverage = findFiles(glob: "${APP_SERVICE_DIR}/test-results/coverage.xml")
-                def modelCoverage = findFiles(glob: "${MODEL_SERVICE_DIR}/test-results/coverage.xml")
-                
-                if (appCoverage.length > 0 || modelCoverage.length > 0) {
-                    recordCoverage tools: [[parser: 'COBERTURA', pattern: '**/test-results/coverage.xml']]
+                    
+                    // Check if any coverage file exists before recording
+                    def coverageFiles = findFiles(glob: '**/test-results/coverage.xml')
+                    if (coverageFiles.length > 0) {
+                        recordCoverage tools: [[parser: 'COBERTURA', pattern: '**/test-results/coverage.xml']]
+                    }
                 }
             }
         }
