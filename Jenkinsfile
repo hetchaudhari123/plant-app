@@ -26,10 +26,10 @@ pipeline {
                         file(credentialsId: 'agri_vision_frontend_env', variable: 'FRONTEND_ENV_FILE')
                     ]) {
                         bat '''
-                            REM Copy environment files to respective directories
-                            copy %APP_ENV_FILE% %APP_SERVICE_DIR%\.env
-                            copy %MODEL_ENV_FILE% %MODEL_SERVICE_DIR%\.env
-                            copy %FRONTEND_ENV_FILE% frontend\.env
+                            REM Copy environment files
+                            copy %APP_ENV_FILE% %APP_SERVICE_DIR%/.env
+                            copy %MODEL_ENV_FILE% %MODEL_SERVICE_DIR%/.env
+                            copy %FRONTEND_ENV_FILE% frontend/.env
                             
                             echo Environment files configured successfully
                         '''
