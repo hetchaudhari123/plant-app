@@ -15,6 +15,28 @@ pipeline {
     }
 
     stages {
+        stage('Setup Environment') {
+            steps {
+                script {
+                    echo "Setting up environment files from Jenkins credentials..."
+                    
+                    withCredentials([
+                        file(credentialsId: 'agri_vision_app_service_env', variable: 'APP_ENV_FILE'),
+                        file(credentialsId: 'agri_vision_model_service_env', variable: 'MODEL_ENV_FILE'),
+                        file(credentialsId: 'agri_vision_frontend_env', variable: 'FRONTEND_ENV_FILE')
+                    ]) {
+                        bat '''
+                            REM Copy environment files to respective directories
+                            copy %APP_ENV_FILE% %APP_SERVICE_DIR%\.env
+                            copy %MODEL_ENV_FILE% %MODEL_SERVICE_DIR%\.env
+                            copy %FRONTEND_ENV_FILE% frontend\.env
+                            
+                            echo Environment files configured successfully
+                        '''
+                    }
+                }
+            }
+        }
         stage('Check PATH') {
             steps {
                 bat 'echo %PATH%'
