@@ -15,6 +15,12 @@ from services.auth_service import (
     resend_signup_otp,
 )
 from dependencies.auth import require_user
+from prometheus_metrics import (
+    SIGNUPS_DONE,
+    ACTIVE_SESSIONS,
+    LOGINS_FAILED,
+    LOGIN_SUCCESS,
+)
 
 router = APIRouter()
 
@@ -64,6 +70,8 @@ class VerifySignupOtpSchema(BaseModel):
 @router.post("/signup/verify-otp", summary="Verify OTP and complete signup")
 async def route_verify_signup_otp(payload: VerifySignupOtpSchema):
     user = await signup_user(email=payload.email, otp_code=payload.otp_code)
+    # Increment Prometheus metric after successful signup
+    SIGNUPS_DONE.inc()
     return {"message": "Account created successfully", "user": user}
 
 
@@ -73,6 +81,9 @@ async def route_login(payload: LoginSchema, response: Response):
         user = await login_user(
             email=payload.email, password=payload.password, response=response
         )
+        # increment active session count
+        ACTIVE_SESSIONS.inc()
+        LOGIN_SUCCESS.inc()
         return {
             "message": "Login successful",
             "user": {
@@ -86,6 +97,7 @@ async def route_login(payload: LoginSchema, response: Response):
 
     except ValueError as ve:
         # Example: invalid credentials
+        LOGINS_FAILED.inc()
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(ve))
     except Exception:
         # Unexpected server errors
@@ -150,6 +162,8 @@ async def route_logout(response: Response):
     Logout endpoint. Clears HttpOnly cookies for access and refresh tokens.
     """
     await logout_user(response)
+    # decrement active session count
+    ACTIVE_SESSIONS.dec()
     return {"message": "Logged out successfully"}
 
 

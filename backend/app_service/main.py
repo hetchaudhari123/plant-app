@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from db.connections import init_db
 from fastapi.middleware.cors import CORSMiddleware
 import config.cloudinary  # noqa: F401
+from prometheus_metrics import metrics_endpoint, prometheus_middleware
 
 
 @asynccontextmanager
@@ -24,6 +25,12 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app with lifespan
 app = FastAPI(title="Plant App 🌱", lifespan=lifespan)
 
+# Add Prometheus middleware
+app.middleware("http")(prometheus_middleware)
+
+
+# Add /metrics route
+app.get("/metrics")(metrics_endpoint)
 
 origins = ["*"]
 app.add_middleware(

@@ -29,3 +29,5 @@
 
   docker push hetchaudhari/agri-vision-frontend-service:latest
 
+  # rem
+  handle DELETE BUTTON VISIBILITY

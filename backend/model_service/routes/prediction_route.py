@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, Depends, File, Body
+from fastapi import APIRouter, UploadFile, Depends, File, Body, HTTPException
 from services.prediction_service import predict_service
 from dependencies import get_manager, get_idx2label
 from pydantic import BaseModel
@@ -10,6 +10,11 @@ from services.prediction_service import (
     get_model_by_id_service,
 )
 import db.connections as db_conn
+from prometheus_metrics import (
+    MODEL_PREDICTION_LATENCY,
+    MODEL_PREDICTIONS,
+    MODEL_PREDICTIONS_FAILED,
+)
 
 router = APIRouter()
 
@@ -24,9 +29,14 @@ async def predict(
     """
     Upload an image and get prediction from the specified model.
     """
-    # Call the service function, passing manager and IDX2LABEL
-    result = await predict_service(model_name, file, manager, idx2label)
-    return result
+    try:
+        with MODEL_PREDICTION_LATENCY.labels(model_name=model_name).time():
+            result = await predict_service(model_name, file, manager, idx2label)
+        MODEL_PREDICTIONS.labels(model_name=model_name).inc()
+        return result
+    except Exception as e:
+        MODEL_PREDICTIONS_FAILED.labels(model_name=model_name).inc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # Request body models

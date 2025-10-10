@@ -24,3 +24,8 @@ uv run python -m pytest tests/unit/test_auth.py -v
 # For utf-16 to utf-8
 iconv -f UTF-16LE -t UTF-8 ./requirements.txt > ./requirements_tmp.txt && mv ./requirements_tmp.txt ./requirements.txt
 
+
+
+# rem:
+-> handle active sessions by creating a session metric
+-> issue in active sesssion

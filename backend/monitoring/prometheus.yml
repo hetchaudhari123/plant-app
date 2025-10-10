@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "app_service"
+    static_configs:
+      - targets: ["app_service:8000"]  # Docker service name + exposed port
+
+  - job_name: "model_service"
+    static_configs:
+      - targets: ["model_service:8002"]  # Docker service name + exposed port

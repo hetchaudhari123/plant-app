@@ -7,6 +7,7 @@ load_dotenv(".env")  # this reads the base .env file
 env_type = os.getenv("ENV_TYPE", "development").lower()
 env_file = ".env.development" if env_type == "development" else ".env.production"
 
+
 class Settings(BaseSettings):
     MONGO_URI: str
     MONGO_DB_NAME: str
@@ -39,5 +40,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = env_file  # use the correct env file based on ENV_TYPE
         extra = "ignore"  # <- allow extra env vars like ENV_TYPE
+
 
 settings = Settings()

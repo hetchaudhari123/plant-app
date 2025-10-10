@@ -34,6 +34,8 @@ COPY . .
 
 # Run Gunicorn + Uvicorn
 # CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--workers", "4"]
+# Create Prometheus multiprocess directory
+RUN mkdir -p /tmp/prometheus_multiproc
 
 # CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--workers", "4", "--access-logfile", "-", "--error-logfile", "-"]
 CMD ["gunicorn","-k", "uvicorn.workers.UvicornWorker","main:app","--bind", "0.0.0.0:8000","--workers", "4","--access-logfile", "-","--error-logfile", "-","--log-level", "debug"]

@@ -15,6 +15,7 @@ from schemas.UserDashboardResponseSchema import UserDashboardResponse
 from services.profile_service import get_user_dashboard, update_farm_size
 from typing import List
 from models.user import User
+from prometheus_metrics import ACCOUNTS_DELETED
 
 router = APIRouter()
 
@@ -70,6 +71,10 @@ async def route_delete_account(
 ):
     user_id = user.id
     await delete_account(user_id=user_id, password=payload.password, response=response)
+
+    # Increment metric after successful deletion
+    ACCOUNTS_DELETED.inc()
+
     return {"message": "Account deleted successfully"}
 
 

@@ -4,6 +4,9 @@ from contextlib import asynccontextmanager
 from routes.prediction_route import router as model_router
 from dependencies import get_manager
 import db.connections as db_conn
+from fastapi.responses import Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from prometheus_metrics import prometheus_middleware
 
 
 # ------------------------
@@ -32,6 +35,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 # ------------------------
 # CORS
 # ------------------------
@@ -43,6 +47,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.middleware("http")(prometheus_middleware)
+
+
+@app.get("/metrics")
+async def metrics():
+    """Expose Prometheus metrics"""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
 
 # ------------------------
 # Include the routes

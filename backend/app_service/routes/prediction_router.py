@@ -7,6 +7,11 @@ from services.prediction_service import (
 )
 from dependencies.auth import require_user
 from pydantic import BaseModel, Field
+from prometheus_metrics import (
+    PREDICTION_REQUESTS,
+    PREDICTION_FAILED,
+    PREDICTION_LATENCY,
+)
 
 router = APIRouter()
 
@@ -87,9 +92,13 @@ async def create_prediction_endpoint(
     Upload an image, call the model_service for prediction,
     and save the result in db_service.
     """
-    user_id = user.id  # get user_id from JWT
-    if not file:
-        raise HTTPException(status_code=400, detail="Image file is required")
-
-    saved_doc = await predict_service(model_name, file, user_id)
-    return saved_doc
+    try:
+        # ✅ Increment counter for prediction requests
+        PREDICTION_REQUESTS.labels(model_name=model_name).inc()
+        with PREDICTION_LATENCY.labels(model_name=model_name).time():
+            saved_doc = await predict_service(model_name, file, user.id)
+        return saved_doc
+    except Exception as e:
+        # Optional: track failed predictions
+        PREDICTION_FAILED.labels(model_name=model_name).inc()
+        raise HTTPException(status_code=500, detail=str(e))
