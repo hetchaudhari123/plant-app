@@ -210,7 +210,7 @@ pipeline {
                     docker-compose -f docker-compose.yml down
                     set APP_NAME=%APP_NAME%
                     set GIT_COMMIT=%GIT_COMMIT%
-                    docker-compose -f docker-compose.yml up -d
+                    docker-compose -f docker-compose.yml up -d --build
                 '''
             }
         }
