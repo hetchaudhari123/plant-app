@@ -15,6 +15,12 @@ pipeline {
     }
 
     stages {
+        stage('Debug branch') {
+            steps {
+                echo "Current branch: ${env.BRANCH_NAME}"
+                echo "GIT_BRANCH: ${env.GIT_BRANCH}"
+            }
+        }
         stage('Setup Environment') {
             steps {
                 script {
