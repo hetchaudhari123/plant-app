@@ -25,7 +25,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install PyTorch CPU directly with a timeout
-RUN pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cpu --timeout=60
+RUN pip install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cpu --timeout=600
 
 # Copy pre-built wheels from builder
 COPY --from=builder /app/wheels /wheels
@@ -41,9 +41,7 @@ COPY . .
 EXPOSE 8002
 
 # Run Gunicorn + Uvicorn
-# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4"]
 # Create Prometheus multiprocess directory
 RUN mkdir -p /tmp/prometheus_multiproc
-# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8002", "--workers", "4", "--access-logfile", "-", "--error-logfile", "-"]
 
 CMD ["gunicorn","-k", "uvicorn.workers.UvicornWorker","main:app","--bind", "0.0.0.0:8002","--workers", "4","--access-logfile", "-","--error-logfile", "-","--log-level", "debug"]
