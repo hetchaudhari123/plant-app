@@ -874,7 +874,7 @@ export function Profile() {
                       <Button
                         onClick={handleDeleteAccount}
                         disabled={deleteConfirmation !== 'DELETE' || !deletePassword}
-                        className="hover:bg-red-50 text-red-600"
+                        className="bg-red-500 hover:bg-red-800 text-white"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Account Permanently
