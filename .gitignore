@@ -16,10 +16,4 @@ frontend/.env
 frontend/node_modules
 frontend/.env*
 backend/app_service/.coverage
-backend/app_service/.python-version
-backend/app_service/pyproject.toml
-backend/app_service/uv.lock
 backend/model_service/.coverage
-backend/model_service/.python-version
-backend/model_service/pyproject.toml
-backend/model_service/uv.lock

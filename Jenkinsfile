@@ -49,11 +49,13 @@ pipeline {
                 script {
                     echo "⚙️ Setting up environment files..."
                     withCredentials([
+                        file(credentialsId: 'agri_vision_app_service_env_production', variable: 'APP_ENV_PRODUCTION_FILE'),
                         file(credentialsId: 'agri_vision_app_service_env', variable: 'APP_ENV_FILE'),
                         file(credentialsId: 'agri_vision_model_service_env', variable: 'MODEL_ENV_FILE'),
                         file(credentialsId: 'agri_vision_frontend_env', variable: 'FRONTEND_ENV_FILE')
                     ]) {
                         bat '''
+                            copy "%APP_ENV_PRODUCTION_FILE%" "%APP_SERVICE_DIR%\\.env.production"
                             copy "%APP_ENV_FILE%" "%APP_SERVICE_DIR%\\.env"
                             copy "%MODEL_ENV_FILE%" "%MODEL_SERVICE_DIR%\\.env"
                             copy "%FRONTEND_ENV_FILE%" "%FRONTEND_DIR%\\.env"
@@ -69,6 +71,11 @@ pipeline {
                 bat 'echo %PATH%'
             }
         }
+
+        
+
+
+
 
         stage('Setup Backend Dependencies') {
             parallel {
@@ -110,6 +117,25 @@ pipeline {
                 }
             }
         }
+
+        stage('Download Torch Models') {
+            steps {
+                echo "📥 Downloading Torch models into saved_models..."
+                dir("${MODEL_SERVICE_DIR}") {
+                    bat '''
+                    REM Create target folder if it doesn't exist
+                    if not exist saved_models mkdir saved_models
+
+                    REM Folder ID (without ?usp=sharing)
+                    set FOLDER_ID=1QYhMcjWePAQ-W7S9PT8hB-oUX0RlsX2h
+
+                    REM Download all files from Google Drive folder into saved_models/
+                    uv run gdown --folder https://drive.google.com/drive/folders/%FOLDER_ID% -O saved_models
+                '''
+        }
+    }
+}
+
 
         stage('Run Linters') {
             parallel {
