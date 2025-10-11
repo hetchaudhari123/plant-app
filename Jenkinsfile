@@ -4,14 +4,6 @@ pipeline {
         timestamps()
     }
 
-    parameters {
-        string(
-            name: 'BRANCH_NAME',
-            defaultValue: 'main',
-            description: 'Branch to build (default: main)'
-        )
-    }
-
     agent any
 
     environment {
@@ -25,51 +17,47 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                echo "📦 Checking out code from branch: ${params.BRANCH_NAME}"
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${params.BRANCH_NAME}"]],
-                    doGenerateSubmoduleConfigurations: false,
-                    extensions: [],
-                    userRemoteConfigs: scm.userRemoteConfigs
-                ])
+                echo "📦 Checking out latest code from SCM"
+                checkout scm
             }
         }
 
         stage('Detect Branch') {
             steps {
                 script {
-                    env.BRANCH_NAME = bat(
+                    def detected = bat(
                         script: 'git rev-parse --abbrev-ref HEAD',
                         returnStdout: true
                     ).trim()
+
+                    // handle detached HEAD case
+                    if (detected == 'HEAD') {
+                        detected = bat(
+                            script: 'git branch -r --contains HEAD',
+                            returnStdout: true
+                        ).trim().tokenize('/').last()
+                    }
+
+                    env.BRANCH_NAME = detected
                     echo "✅ Detected branch: ${env.BRANCH_NAME}"
                 }
-            }
-        }
-
-        stage('Debug branch') {
-            steps {
-                echo "Current branch (param): ${params.BRANCH_NAME}"
-                echo "Current branch (detected): ${env.BRANCH_NAME}"
-                echo "GIT_BRANCH: ${env.GIT_BRANCH}"
             }
         }
 
         stage('Setup Environment') {
             steps {
                 script {
-                    echo "Setting up environment files..."
+                    echo "⚙️ Setting up environment files..."
                     withCredentials([
                         file(credentialsId: 'agri_vision_app_service_env', variable: 'APP_ENV_FILE'),
                         file(credentialsId: 'agri_vision_model_service_env', variable: 'MODEL_ENV_FILE'),
                         file(credentialsId: 'agri_vision_frontend_env', variable: 'FRONTEND_ENV_FILE')
                     ]) {
                         bat '''
-                            copy "%APP_ENV_FILE%" "%APP_SERVICE_DIR%/.env"
-                            copy "%MODEL_ENV_FILE%" "%MODEL_SERVICE_DIR%/.env"
-                            copy "%FRONTEND_ENV_FILE%" "frontend/.env"
-                            echo Environment files configured successfully
+                            copy "%APP_ENV_FILE%" "%APP_SERVICE_DIR%\\.env"
+                            copy "%MODEL_ENV_FILE%" "%MODEL_SERVICE_DIR%\\.env"
+                            copy "%FRONTEND_ENV_FILE%" "%FRONTEND_DIR%\\.env"
+                            echo Environment files configured successfully.
                         '''
                     }
                 }
@@ -86,7 +74,7 @@ pipeline {
             parallel {
                 stage('Setup App Service') {
                     steps {
-                        echo "📦 Setting up app_service virtual environment"
+                        echo "📦 Installing app_service dependencies"
                         dir("${APP_SERVICE_DIR}") {
                             bat '''
                                 uv python install 3.11
@@ -96,9 +84,10 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Setup Model Service') {
                     steps {
-                        echo "📦 Setting up model_service virtual environment"
+                        echo "📦 Installing model_service dependencies"
                         dir("${MODEL_SERVICE_DIR}") {
                             bat '''
                                 uv python install 3.11
@@ -115,18 +104,18 @@ pipeline {
 
         stage('Setup Frontend Dependencies') {
             steps {
-                echo "📦 Installing frontend dependencies with npm"
+                echo "📦 Installing frontend dependencies"
                 dir("${FRONTEND_DIR}") {
                     bat 'npm install'
                 }
             }
         }
 
-        stage('Run Backend Linters') {
+        stage('Run Linters') {
             parallel {
                 stage('Lint App Service') {
                     steps {
-                        echo "🧹 Running Ruff and Black checks on app_service"
+                        echo "🧹 Linting app_service"
                         dir("${APP_SERVICE_DIR}") {
                             bat '''
                                 uv run ruff check .
@@ -135,9 +124,10 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Lint Model Service') {
                     steps {
-                        echo "🧹 Running Ruff and Black checks on model_service"
+                        echo "🧹 Linting model_service"
                         dir("${MODEL_SERVICE_DIR}") {
                             bat '''
                                 uv run ruff check .
@@ -146,23 +136,23 @@ pipeline {
                         }
                     }
                 }
-            }
-        }
 
-        stage('Run Frontend Linting') {
-            steps {
-                echo "🧹 Running ESLint on frontend"
-                dir("${FRONTEND_DIR}") {
-                    bat 'npm run lint'
+                stage('Lint Frontend') {
+                    steps {
+                        echo "🧹 Running ESLint on frontend"
+                        dir("${FRONTEND_DIR}") {
+                            bat 'npm run lint'
+                        }
+                    }
                 }
             }
         }
 
-        stage('Run Backend Tests') {
+        stage('Run Tests') {
             parallel {
-                stage('Test App Service') {
+                stage('App Service Tests') {
                     steps {
-                        echo "🧪 Running app_service tests with coverage"
+                        echo "🧪 Running app_service tests"
                         dir("${APP_SERVICE_DIR}") {
                             bat '''
                                 if not exist test-results mkdir test-results
@@ -171,9 +161,10 @@ pipeline {
                         }
                     }
                 }
-                stage('Test Model Service') {
+
+                stage('Model Service Tests') {
                     steps {
-                        echo "🧪 Running model_service tests with coverage"
+                        echo "🧪 Running model_service tests"
                         dir("${MODEL_SERVICE_DIR}") {
                             bat '''
                                 if not exist test-results mkdir test-results
@@ -187,7 +178,7 @@ pipeline {
 
         stage('Build Frontend') {
             steps {
-                echo "🏗️ Building React frontend with Vite"
+                echo "🏗️ Building React frontend"
                 dir("${FRONTEND_DIR}") {
                     bat 'npm run build'
                 }
@@ -195,31 +186,30 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            when {
-                expression { env.BRANCH_NAME == 'main' }
-            }
             parallel {
-                stage('Build App Service Image') {
+                stage('App Service Image') {
                     steps {
                         echo "🐳 Building Docker image for app_service"
                         dir("${APP_SERVICE_DIR}") {
-                            bat "docker build -t %APP_NAME%_app:%GIT_COMMIT% ."
+                            bat "docker build -t %APP_NAME%_app ."
                         }
                     }
                 }
-                stage('Build Model Service Image') {
+
+                stage('Model Service Image') {
                     steps {
                         echo "🐳 Building Docker image for model_service"
                         dir("${MODEL_SERVICE_DIR}") {
-                            bat "docker build -t %APP_NAME%_model:%GIT_COMMIT% ."
+                            bat "docker build -t %APP_NAME%_model ."
                         }
                     }
                 }
-                stage('Build Frontend Image') {
+
+                stage('Frontend Image') {
                     steps {
                         echo "🐳 Building Docker image for frontend"
                         dir("${FRONTEND_DIR}") {
-                            bat "docker build -t %APP_NAME%_frontend:%GIT_COMMIT% ."
+                            bat "docker build -t %APP_NAME%_frontend ."
                         }
                     }
                 }
@@ -227,15 +217,11 @@ pipeline {
         }
 
         stage('Deploy') {
-            when {
-                expression { env.BRANCH_NAME == 'main' }
-            }
             steps {
                 echo "🚀 Deploying all services"
                 bat '''
                     docker-compose -f docker-compose.yml down
                     set APP_NAME=%APP_NAME%
-                    set GIT_COMMIT=%GIT_COMMIT%
                     docker-compose -f docker-compose.yml up -d --build
                 '''
             }
