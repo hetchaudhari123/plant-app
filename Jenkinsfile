@@ -4,6 +4,14 @@ pipeline {
         timestamps()
     }
 
+    parameters {
+        string(
+            name: 'BRANCH_NAME',
+            defaultValue: 'main',
+            description: 'Branch to build (default: main)'
+        )
+    }
+
     agent any
 
     environment {
@@ -15,17 +23,43 @@ pipeline {
     }
 
     stages {
+        stage('Checkout Code') {
+            steps {
+                echo "📦 Checking out code from branch: ${params.BRANCH_NAME}"
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.BRANCH_NAME}"]],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    userRemoteConfigs: scm.userRemoteConfigs
+                ])
+            }
+        }
+
+        stage('Detect Branch') {
+            steps {
+                script {
+                    env.BRANCH_NAME = bat(
+                        script: 'git rev-parse --abbrev-ref HEAD',
+                        returnStdout: true
+                    ).trim()
+                    echo "✅ Detected branch: ${env.BRANCH_NAME}"
+                }
+            }
+        }
+
         stage('Debug branch') {
             steps {
-                echo "Current branch: ${env.BRANCH_NAME}"
+                echo "Current branch (param): ${params.BRANCH_NAME}"
+                echo "Current branch (detected): ${env.BRANCH_NAME}"
                 echo "GIT_BRANCH: ${env.GIT_BRANCH}"
             }
         }
+
         stage('Setup Environment') {
             steps {
                 script {
                     echo "Setting up environment files..."
-                    
                     withCredentials([
                         file(credentialsId: 'agri_vision_app_service_env', variable: 'APP_ENV_FILE'),
                         file(credentialsId: 'agri_vision_model_service_env', variable: 'MODEL_ENV_FILE'),
@@ -35,23 +69,16 @@ pipeline {
                             copy "%APP_ENV_FILE%" "%APP_SERVICE_DIR%/.env"
                             copy "%MODEL_ENV_FILE%" "%MODEL_SERVICE_DIR%/.env"
                             copy "%FRONTEND_ENV_FILE%" "frontend/.env"
-                            
                             echo Environment files configured successfully
                         '''
                     }
                 }
             }
         }
+
         stage('Check PATH') {
             steps {
                 bat 'echo %PATH%'
-            }
-        }
-
-        stage('Checkout Code') {
-            steps {
-                echo "📦 Checking out latest code from GitHub"
-                checkout scm
             }
         }
 
@@ -76,15 +103,8 @@ pipeline {
                             bat '''
                                 uv python install 3.11
                                 uv init --python 3.11
-
-                                REM --- create filtered requirements file without torch packages ---
                                 findstr /v /i "torch torchvision torchaudio" requirements.txt > requirements_without_torch.txt
-
-                                
-
                                 uv add -r requirements_without_torch.txt --index-strategy unsafe-best-match
-
-                                REM Install PyTorch CPU separately
                                 uv pip install torch==2.3.0+cpu torchvision==0.18.0+cpu torchaudio==2.3.0+cpu --index-url https://download.pytorch.org/whl/cpu
                             '''
                         }
@@ -176,7 +196,7 @@ pipeline {
 
         stage('Build Docker Images') {
             when {
-                branch 'main'
+                expression { env.BRANCH_NAME == 'main' }
             }
             parallel {
                 stage('Build App Service Image') {
@@ -208,7 +228,7 @@ pipeline {
 
         stage('Deploy') {
             when {
-                branch 'main'
+                expression { env.BRANCH_NAME == 'main' }
             }
             steps {
                 echo "🚀 Deploying all services"
@@ -225,15 +245,10 @@ pipeline {
     post {
         always {
             script {
-                script {
-                    // Always try to publish, allowEmptyResults handles missing files
-                    junit allowEmptyResults: true, testResults: '**/test-results/results.xml'
-                    
-                    // Check if any coverage file exists before recording
-                    def coverageFiles = findFiles(glob: '**/test-results/coverage.xml')
-                    if (coverageFiles.length > 0) {
-                        recordCoverage tools: [[parser: 'COBERTURA', pattern: '**/test-results/coverage.xml']]
-                    }
+                junit allowEmptyResults: true, testResults: '**/test-results/results.xml'
+                def coverageFiles = findFiles(glob: '**/test-results/coverage.xml')
+                if (coverageFiles.length > 0) {
+                    recordCoverage tools: [[parser: 'COBERTURA', pattern: '**/test-results/coverage.xml']]
                 }
             }
         }
@@ -246,8 +261,6 @@ pipeline {
         cleanup {
             echo "🧹 Cleaning up workspace"
             cleanWs()
-            
-            // bat 'docker system prune -af || true'
         }
     }
 }
